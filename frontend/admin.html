@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<div class="navbar p-4 flex justify-between items-center">
+  <h1 class="text-xl font-bold" style="color: var(--primary-color);">Admin Panel</h1>
+
+  <div class="flex gap-3">
+    <button onclick="toggleTheme()" class="btn-primary px-4 py-2 rounded">🌙</button>
+    <button onclick="logout()" class="btn-danger px-4 py-2 rounded">Logout</button>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="p-6 flex justify-center">
+  <div class="card p-6 w-full max-w-lg">
+
+    <h2 class="text-lg font-bold mb-4">Add Student</h2>
+
+    <form id="fullForm">
+
+      <input id="name" placeholder="Name" class="w-full p-2 border mb-2 rounded" required>
+      <input id="branch" placeholder="Branch" class="w-full p-2 border mb-2 rounded" required>
+      <input id="semester" type="number" placeholder="Semester" class="w-full p-2 border mb-2 rounded" required>
+      <button type="button" onclick="loadSubjects()" class="btn-primary w-full mt-2">Load Subjects</button>
+
+      <div id="subjectsContainer"></div>
+
+      <button class="btn-primary w-full mt-4">Submit</button>
+
+    </form>
+
+  </div>
+</div>
+
+<script src="js/admin.js"></script>
+
+</body>
+</html>
