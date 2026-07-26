@@ -1,0 +1,36 @@
+Stock_Id,Garment_Name,Vendor_Name,Qty_Purchased,Unit_Price,Description,Garment_Type,GST,Total_Price
+S001,3 piece,Louis Philippe,45,5000,"Out Shell: 80% Polyester & 20% Viscose Rayon,Dry Clean",Summer Wear,10%,275000
+S002,Bell bottom jeans,WestSide,22,600,"Cotton , Machine wash , Regular Fit",Summer Wear,10%,16500
+S003,Blazer,Cantabil,192,2000,"97% polyester, 3% elastane ,Dry Clean",Winter Wear,10%,440000
+S004,Boyfriend jeans,Aeropostale,121,500,"98.5% cotton, 1.5% elastane ,Stretchable , Machine Wash",Summer Wear,10%,68750
+S005,Cargo pants,Adidas,96,1200,"Regular Fit , Cotton , Machine Wash , Cuffed Hems",Summer Wear,10%,132000
+S006,Cold shoulder,FabAlley,19,250,"Standard Fit , Cotton , Hand Wash",Summer Wear,10%,6875
+S007,Crop top,Zara,39,250,"100% Polyester , Dry Clean , Stripped , Woven",Summer Wear,10%,12925
+S008,Cycling Shorts,CM Tailors,48,250,"Sports Wear , Cotton , Machine Wash",Summer Wear,10%,13750
+S009,Hoodies,Puma,76,500,"87% cotton, 33% polyester Machine Wash , Hood Neck",Winter Wear,10%,55000
+S010,Jackets,Medley,244,900,"Polyester , Machine Wash , Cuffed Sleeves",Winter Wear,10%,247500
+S011,Jeans,CM Tailors,964,1000,"97% Cotton 2.5% Polyester , Denim Wear , Machine Wash",Summer Wear,10%,110000
+S012,Joggers,Nike,95,1500,"Regular Fit , Denim , Machine Wash , Cuffed Hems",Summer Wear,10%,166000
+S013,Jump suit,Miss Chase,120,2500,"Polyester , Dry Clean , Round Neck",Winter Wear,10%,338250
+S014,Kurta,Mittal Garments,186,700,"Cotton , Machine Wash  , Long Kurta",Summer Wear,10%,154000
+S015,Kurti,Riddhi Siddhi,96,500,"Viscose Rayon , Hand Wash",Summer Wear,10%,55000
+S016,Leggings,Paradise Ethnix,95,200,"Knit Tights ,80% polyamide, 14% modal, and 6% elastane",Summer Wear,10%,22000
+S017,Lowers,Shiv Sagar,498,300,"100% Cotton , Machine Wash",Summer Wear,10%,165000
+S018,Off shoulder,Nykaa,61,750,"Semi-Fit , Polyester , Machine Wash",Summer Wear,10%,53625
+S019,One piece,Elle Western,45,2999,"Semi-Fit , Polyester , Machine Wash , Cordinate Sets",Winter Wear,10%,148450.5
+S020,Over sized tshirt,StreetWear,43,675,"Loose Fit , 100% Cotton , Machine Wash",Summer Wear,10%,37125
+S021,Plazos,Paradise Ethnix,195,200,"Viscose Rayon  , Machine Wash , Loose Fit",Summer Wear,10%,44000
+S022,Sharara,Lifestyle,107,1200,"ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ poly georgette , Machine Wash , Regular Fit",Winter Wear,10%,146520
+S023,Sherwani,Manyawar,32,7000,"80% Silk and 20% Cotton , Silk , Dry Clean",Winter Wear,10%,277200
+S024,Shirt,Raymonds,992,800,"Regular Fit , Cotton , Machine Wash ",Summer Wear,10%,880000
+S025,Skirts,Zara,142,550,"100% Polyester (organza) , Hand Wash , Flared Hemline",Summer Wear,10%,91960
+S026,Socks,Adidas,50,100,"Cotton, nylon and elastane blend , Machine Wash Cold",Winter Wear,10%,6500
+S027,Sweater,CityVibes,121,750,"round neck , Woolen , Regular Fit",Winter Wear,10%,103125
+S028,Sweatshirts,Monti Carlo,980,500,"Cotton blend , Machine Wash",Winter Wear,10%,542850
+S029,Tank Top,Bonker,39,900,"Cotton blend , Machine Wash , Slim Fit",Summer Wear,10%,49500
+S030,Top,Zara,246,250,"Woven Georgette , Regular and Slim fit",Summer Wear,10%,77000
+S031,Trousers,Peter England,489,1500,"Slim Fit , Mid Rise , Cotton , Machine Wash",Summer Wear,10%,808500
+S032,T-Shirt,Reebok,252,750,"Slim Fit and Regular Fit, Mid Rise , Cotton , Machine Wash",Summer Wear,10%,1650000
+S033,Varsity Jacket,Bewakkof,40,1200,"Cotton , Machine Wash , Stand Collar , Solid , Regular",Winter Wear,10%,52800
+S034,Vest,Jockey,175,150,"100% Cotton , Machine Wash , Regular Fit",Winter Wear,10%,5088
+S035,Winter Socks,Adidas,260,150,"Cotton , Nylon , Elethen , Hand Wash ,Woolen",Winter Wear,10%,42900
