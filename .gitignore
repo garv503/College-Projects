@@ -1,0 +1,15 @@
+# Local database configuration (contains credentials)
+src/main/resources/db.properties
+
+# Local IDE and build output
+.tools/
+build/
+target/
+lib/
+.classpath
+.project
+.settings/
+
+# Operating-system files
+.DS_Store
+Thumbs.db

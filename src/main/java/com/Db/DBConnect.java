@@ -1,26 +1,64 @@
 package com.Db;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
 
 public class DBConnect {
-    
-    private static Connection conn; // Static variable to hold the database connection
+    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/enotes?useSSL=false&serverTimezone=UTC";
+    private static final String DEFAULT_USERNAME = "root";
+    private static Connection conn;
 
-    // Method to get the database connection
-    public static Connection getconn() {
+    /**
+     * Returns the shared application connection. Settings are read in this order:
+     * JVM system properties, environment variables, then WEB-INF/classes/db.properties.
+     */
+    public static synchronized Connection getconn() {
         try {
-            // Check if the connection is null (i.e., not yet established)
-            if (conn == null) {
-                // Load the MySQL JDBC driver
+            if (conn == null || conn.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                // Establish the connection using the DriverManager
-                conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/enotes", "root", "1234");
+                Properties properties = loadProperties();
+                String url = setting("enotes.db.url", "ENOTES_DB_URL", "db.url", DEFAULT_URL, properties);
+                String username = setting("enotes.db.username", "ENOTES_DB_USERNAME", "db.username", DEFAULT_USERNAME, properties);
+                String password = setting("enotes.db.password", "ENOTES_DB_PASSWORD", "db.password", "", properties);
+
+                conn = DriverManager.getConnection(url, username, password);
             }
-            return conn; // Return the established connection
-        } catch (Exception e) {
-            e.printStackTrace(); // Print any exceptions that occur
+            return conn;
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new IllegalStateException(
+                    "Unable to connect to the enotes database. Check db.properties or ENOTES_DB_* settings.", e);
         }
-        return null; // Return null if the connection could not be established
+    }
+
+    private static Properties loadProperties() {
+        Properties properties = new Properties();
+        try (InputStream input = DBConnect.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input != null) {
+                properties.load(input);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not read db.properties.", e);
+        }
+        return properties;
+    }
+
+    private static String setting(String systemProperty, String environmentVariable, String propertyKey,
+            String defaultValue, Properties properties) {
+        String value = System.getProperty(systemProperty);
+        if (isBlank(value)) {
+            value = System.getenv(environmentVariable);
+        }
+        if (isBlank(value)) {
+            value = properties.getProperty(propertyKey);
+        }
+        return isBlank(value) ? defaultValue : value;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "E-Notes: Build",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\run-enotes.ps1",
+        "-Action",
+        "build"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "E-Notes: Start",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\run-enotes.ps1",
+        "-Action",
+        "start"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "E-Notes: Stop",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\run-enotes.ps1",
+        "-Action",
+        "stop"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
