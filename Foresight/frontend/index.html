@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Foresight</title>
+  <meta name="description" content="Academic performance analytics for students and faculty.">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body class="auth-page">
+
+  <main class="auth-shell">
+
+    <!-- Left: the sign-in form -->
+    <section class="auth-panel">
+      <div class="auth-form-wrap">
+
+        <div class="brand auth-brand">
+          <span class="brand-mark" aria-hidden="true">FS</span>
+          <span>Foresight</span>
+        </div>
+
+        <div class="auth-heading">
+          <h1>Sign in</h1>
+          <p class="muted">Access your academic dashboard.</p>
+        </div>
+
+        <!-- Shown when the session expires and the user is bounced here -->
+        <div id="expiredNotice" class="callout callout-warning hidden" role="status">
+          <span class="callout-icon" aria-hidden="true">⚠</span>
+          <span>Your session expired. Please sign in again.</span>
+        </div>
+
+        <form id="loginForm" class="stack-sm" novalidate>
+
+          <div class="field">
+            <label class="label" for="username">Username</label>
+            <input class="input" id="username" name="username" type="text"
+                   autocomplete="username" autocapitalize="none" spellcheck="false"
+                   placeholder="admin or your roll number" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password"
+                     autocomplete="current-password" placeholder="••••••••" required>
+              <button class="input-affix" id="togglePassword" type="button"
+                      aria-label="Show password" aria-pressed="false">👁</button>
+            </div>
+          </div>
+
+          <!-- role="alert" so a screen reader announces a failed sign-in -->
+          <p id="formError" class="field-error hidden" role="alert"></p>
+
+          <button class="btn btn-primary btn-block" id="submitBtn" type="submit">
+            Sign in
+          </button>
+        </form>
+
+        <p class="text-sm auth-note">
+          <button class="link-btn" type="button" id="forgotPasswordBtn">Forgot your password?</button>
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

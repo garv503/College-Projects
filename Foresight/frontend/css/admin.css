@@ -1,0 +1,181 @@
+/* =====================================================================
+   Admin console
+   ===================================================================== */
+
+/* --- Tabs ------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: var(--sp-4);
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 0.4375rem 0.75rem;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-md);
+  font-weight: 550;
+  color: var(--text-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.tab:hover { background: var(--surface-hover); color: var(--text-1); }
+
+.tab[aria-selected="true"] {
+  background: var(--accent-quiet);
+  color: var(--accent);
+}
+
+/* The tab bar is the primary navigation, so it stays visible on narrow
+   screens - but the labels are what wrap, not the layout. */
+@media (max-width: 900px) {
+  .tabs { margin-left: 0; order: 3; width: 100%; overflow-x: auto; }
+  .appbar { height: auto; padding-block: var(--sp-2); }
+  .appbar .container { flex-wrap: wrap; }
+}
+
+/* --- User chip -------------------------------------------------------- */
+
+.user-chip { line-height: 1.2; }
+.user-name { font-size: var(--fs-sm); font-weight: 600; color: var(--text-1); }
+.user-role { font-size: var(--fs-xs); color: var(--text-3); text-transform: capitalize; }
+
+@media (max-width: 720px) {
+  .user-chip { display: none; }
+}
+
+/* --- Filter bar ------------------------------------------------------- */
+
+.filters {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.field-inline .select { width: auto; min-width: 150px; }
+.field-inline .label { color: var(--text-3); white-space: nowrap; }
+
+/* --- Dropzone --------------------------------------------------------- */
+
+.dropzone {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface-sunken);
+  transition: border-color var(--t-fast) var(--ease),
+              background var(--t-fast) var(--ease);
+}
+
+.dropzone:hover,
+.dropzone:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-quiet);
+}
+
+/* Applied on dragover so there is feedback that the drop will land. */
+.dropzone.is-dragging {
+  border-color: var(--accent);
+  background: var(--accent-quiet);
+  border-style: solid;
+}
+
+.dropzone.is-busy { opacity: 0.6; pointer-events: none; }
+
+.dropzone-icon  { font-size: 26px; margin-bottom: var(--sp-2); }
+.dropzone-title { font-weight: 550; color: var(--text-1); font-size: var(--fs-md); }
+.dropzone-hint  { font-size: var(--fs-sm); color: var(--text-3); margin-top: 2px; }
+
+/* --- Import error report ---------------------------------------------- */
+
+.import-errors {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+
+.import-error-row {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-sm);
+  border-bottom: 1px solid var(--border);
+}
+.import-error-row:last-child { border-bottom: none; }
+
+.import-error-line {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--critical-ink);
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+/* --- Credentials reveal ----------------------------------------------- */
+
+/* Shown once after creating a student. The password is never recoverable
+   afterwards - only its hash is stored - so this has to be copyable. */
+.credentials {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.credential-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.credential-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+.credential-value {
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  color: var(--text-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  user-select: all;
+}
+
+/* --- Reason chips in the at-risk table -------------------------------- */
+
+.why-cell {
+  max-width: 340px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.risk-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--text-1);
+}

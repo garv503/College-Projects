@@ -1,0 +1,64 @@
+/* =====================================================================
+   Sign-in page
+   =====================================================================
+   A single centred card. There is exactly one thing to do on this page,
+   so nothing else competes with it.
+   ===================================================================== */
+
+.auth-page {
+  min-height: 100vh;
+  background: var(--page);
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  padding: var(--sp-6);
+}
+
+/* On a phone the card becomes the page: a bordered box inset from the
+   edges wastes width that the form needs. */
+@media (max-width: 480px) {
+  .auth-shell { padding: 0; align-items: stretch; }
+  .auth-panel { max-width: none; }
+  .auth-form-wrap {
+    min-height: 100vh;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: var(--sp-5);
+  }
+}
+
+.auth-brand { font-size: var(--fs-lg); }
+
+.auth-heading h1 {
+  font-size: var(--fs-2xl);
+  margin-bottom: var(--sp-1);
+}
+
+.auth-note {
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-4);
+  line-height: 1.5;
+  text-align: center;
+}

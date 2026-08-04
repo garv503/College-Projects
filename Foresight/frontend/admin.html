@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin console · Foresight</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/admin.css">
+
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="appbar">
+    <div class="container">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">FS</span>
+        <span>Foresight</span>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab" role="tab" data-view="overview" aria-selected="true">Overview</button>
+        <button class="tab" role="tab" data-view="students" aria-selected="false">Students</button>
+        <button class="tab" role="tab" data-view="import" aria-selected="false">Import</button>
+        <button class="tab" role="tab" data-view="audit" aria-selected="false" id="auditTab">Audit log</button>
+      </nav>
+
+      <div class="spacer"></div>
+
+      <div class="row" style="gap: var(--sp-2)">
+        <div class="avatar" id="userAvatar" aria-hidden="true">–</div>
+        <div class="user-chip">
+          <div class="user-name" id="userName">—</div>
+          <div class="user-role" id="userRole">—</div>
+        </div>
+        <button id="logoutBtn" class="btn btn-sm" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container stack">
+
+      <!-- Cohort filters. One row above the content, applying to every
+           panel below - so the whole console answers the same question. -->
+      <div class="row-wrap filters">
+        <div class="field-inline">
+          <label class="label text-sm" for="branchFilter">Branch</label>
+          <select class="select" id="branchFilter"><option value="">All branches</option></select>
+        </div>
+        <div class="field-inline">
+          <label class="label text-sm" for="semesterFilter">Semester</label>
+          <select class="select" id="semesterFilter">
+            <option value="">All semesters</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn btn-outline btn-sm" id="exportBtn" type="button">↓ Export CSV</button>
+        <button class="btn btn-primary btn-sm" id="addStudentBtn" type="button">+ Add student</button>
+      </div>
+
+      <!-- ============================ OVERVIEW ======================= -->
+      <section data-panel="overview" class="stack">
+
+        <div class="grid grid-stats" aria-label="Cohort summary">
+          <div class="stat">
+            <div class="stat-label">Students</div>
+            <div class="stat-value" id="kpiStudents">—</div>
+            <div class="stat-meta" id="kpiStudentsMeta"></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Average marks</div>
+            <div class="stat-value" id="kpiMarks">—</div>
+            <div class="stat-meta" id="kpiMarksMeta"></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Average attendance</div>
+            <div class="stat-value" id="kpiAttendance">—</div>
+            <div class="stat-meta" id="kpiAttendanceMeta"></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Need attention</div>
+            <div class="stat-value" id="kpiRisk">—</div>
+            <div class="stat-meta" id="kpiRiskMeta"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-halves">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Grade distribution</div>
+                <div class="card-sub">Students per grade band</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-frame short"><canvas id="gradeChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Pass rate by subject</div>
+                <div class="card-sub">Weakest subjects first</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-frame short"><canvas id="passRateChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Students needing attention</div>
+              <div class="card-sub">Ranked by risk score, with the reason for each</div>
+            </div>
+            <button class="btn btn-sm btn-outline" id="viewAllRisk" type="button">View all</button>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Student</th>
+                  <th scope="col">Cohort</th>
+                  <th scope="col" class="num">Marks</th>
+                  <th scope="col" class="num">Attendance</th>
+                  <th scope="col" class="num">Risk</th>
+                  <th scope="col">Why</th>
+                </tr>
+              </thead>
+              <tbody id="atRiskTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Subject statistics</div>
+              <div class="card-sub">Exact figures behind the pass-rate chart</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Subject</th>
+                  <th scope="col" class="num">Enrolled</th>
+                  <th scope="col" class="num">Average</th>
+                  <th scope="col" class="num">Spread</th>
+                  <th scope="col" class="num">Attendance</th>
+                  <th scope="col" class="num">Pass rate</th>
+                </tr>
+              </thead>
+              <tbody id="subjectStatsTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================ STUDENTS ======================= -->
+      <section data-panel="students" class="stack" hidden>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">All students</div>
+              <div class="card-sub" id="studentCount">—</div>
+            </div>
+            <div class="row">
+              <input class="input" id="searchInput" type="search"
+                     placeholder="Search name or roll number…" style="width: 240px">
+              <div class="segmented" role="group" aria-label="Filter by risk">
+                <button type="button" data-risk="" aria-pressed="true">All</button>
+                <button type="button" data-risk="high" aria-pressed="false">High</button>
+                <button type="button" data-risk="medium" aria-pressed="false">Medium</button>
+                <button type="button" data-risk="low" aria-pressed="false">On track</button>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col" class="sortable" data-sort="name">Student</th>
+                  <th scope="col">Cohort</th>
+                  <th scope="col" class="num sortable" data-sort="marks">Marks</th>
+                  <th scope="col" class="num sortable" data-sort="attendance">Attendance</th>
+                  <th scope="col" class="num sortable" data-sort="rank">Rank</th>
+                  <th scope="col" class="num sortable" data-sort="risk">Risk</th>
+                  <th scope="col">Status</th>
+                  <!-- Sorting ascending puts "never signed in" at the top,
+                       which is the reason this column exists. -->
+                  <th scope="col" class="sortable" data-sort="last_seen">Last seen</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody id="studentsTable"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="pageInfo">—</span>
+            <div class="row">
+              <button class="btn btn-sm btn-outline" id="prevPage" type="button">← Previous</button>
+              <button class="btn btn-sm btn-outline" id="nextPage" type="button">Next →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= IMPORT ======================== -->
+      <section data-panel="import" class="stack" hidden>
+        <div class="grid grid-halves">
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Import marks</div>
+                <div class="card-sub">CSV: roll_no, subject_code, type, marks_obtained</div>
+              </div>
+            </div>
+            <div class="card-body stack-sm">
+              <div class="callout callout-info">
+                <span class="callout-icon" aria-hidden="true">ℹ</span>
+                <span>The whole file is validated first. If any row is
+                      rejected, nothing is imported and you get the line
+                      numbers.</span>
+              </div>
+              <div class="dropzone" id="marksDrop" tabindex="0" role="button"
+                   aria-label="Upload marks CSV">
+                <div class="dropzone-icon" aria-hidden="true">📄</div>
+                <div class="dropzone-title">Drop a CSV here, or click to choose</div>
+                <div class="dropzone-hint">Up to 5,000 rows</div>
+                <input type="file" id="marksFile" accept=".csv" hidden>
+              </div>
+              <button class="btn btn-outline btn-sm" id="templateBtn" type="button">
+                ↓ Download template
+              </button>
+              <div id="marksResult"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Import attendance</div>
+                <div class="card-sub">CSV: roll_no, subject_code, class_date, status</div>
+              </div>
+            </div>
+            <div class="card-body stack-sm">
+              <div class="callout callout-info">
+                <span class="callout-icon" aria-hidden="true">ℹ</span>
+                <span>Status is one of present, absent, late or excused.
+                      Re-uploading a corrected register updates the
+                      existing rows.</span>
+              </div>
+              <div class="dropzone" id="attendanceDrop" tabindex="0" role="button"
+                   aria-label="Upload attendance CSV">
+                <div class="dropzone-icon" aria-hidden="true">📅</div>
+                <div class="dropzone-title">Drop a CSV here, or click to choose</div>
+                <div class="dropzone-hint">One row per student, per class</div>
+                <input type="file" id="attendanceFile" accept=".csv" hidden>
+              </div>
+              <div id="attendanceResult"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================== AUDIT ======================== -->
+      <section data-panel="audit" class="stack" hidden>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Audit log</div>
+              <div class="card-sub">
+                Most entries are written by database triggers, so a change
+                made directly in a SQL client is recorded too
+              </div>
+            </div>
+            <select class="select" id="actionFilter" style="width: 200px">
+              <option value="">All actions</option>
+              <option value="login.success">Sign-ins</option>
+              <option value="assessment.create">Marks created</option>
+              <option value="assessment.update">Marks changed</option>
+              <option value="assessment.delete">Marks deleted</option>
+              <option value="student.update">Student updated</option>
+              <option value="password.change">Password changed</option>
+              <option value="password.admin_reset">Password reset</option>
+              <option value="import.marks">Marks imported</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Who</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody id="auditTable"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="auditPageInfo">—</span>
+            <div class="row">
+              <button class="btn btn-sm btn-outline" id="auditPrev" type="button">← Previous</button>
+              <button class="btn btn-sm btn-outline" id="auditNext" type="button">Next →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

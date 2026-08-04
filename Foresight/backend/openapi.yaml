@@ -1,0 +1,736 @@
+openapi: 3.0.3
+
+info:
+  title: Foresight API
+  version: "2.0.0"
+  description: |
+    Academic performance analytics for a college: marks, attendance,
+    cohort ranking and early identification of students at risk.
+
+    ## Authentication
+
+    Every endpoint except `/api/health`, `/api/auth/login` and
+    `/api/auth/forgot-password` needs a bearer token. Get one from
+    `POST /api/auth/login`, then click **Authorize** above and paste it in.
+
+    ## Roles
+
+    | Role      | Can do                                                   |
+    |-----------|----------------------------------------------------------|
+    | `student` | Read their own marks, attendance and report card          |
+    | `faculty` | All of the above, plus cohort analytics and marks entry    |
+    | `admin`   | Everything, plus creating students, looking up passwords, and the audit log |
+
+    A student requesting another student's records receives `403`. The
+    student id used for "my records" is read from the signed token, not
+    from the URL.
+
+    ## Passwords
+
+    Stored as plain text in this build, by design - it is run as a
+    personal admin tool and the owner needs to read a password back
+    directly. See the note on `POST /api/admin/students` and
+    `backend/security.py` for the trade-off that comes with that choice.
+
+servers:
+  - url: http://127.0.0.1:5000
+    description: Local development
+
+tags:
+  - name: Auth
+    description: Sign in and password management
+  - name: Students
+    description: Per-student analytics and report cards
+  - name: Catalog
+    description: Branches and subjects
+  - name: Analytics
+    description: Cohort-level statistics (staff only)
+  - name: Admin
+    description: Student management, bulk import, audit log
+  - name: System
+    description: Health check
+
+paths:
+
+  /api/health:
+    get:
+      tags: [System]
+      summary: Liveness probe
+      security: []
+      responses:
+        "200":
+          description: Service and database are up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  database: { type: string, example: up }
+        "503":
+          description: Database is unreachable
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Exchange credentials for a JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: admin }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expires_at: { type: string, format: date-time }
+                  user: { $ref: "#/components/schemas/User" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Too many failed attempts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: The signed-in user
+      description: |
+        Called on page load to restore a session. A `401` here is what
+        tells the front end its stored token is no longer valid.
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change your own password
+      description: Requires the current password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password: { type: string, format: password }
+      responses:
+        "200": { description: Password updated }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Self-service password reset - no session required
+      security: []
+      description: |
+        Requires the username and the email on file for that account to
+        match before a new password is accepted. Admin and faculty
+        accounts carry their own `users.email`; a student account falls
+        back to the email on their linked `students` row.
+
+        Rate limited on the same budget as `/login`, and rejected the
+        same way whether the username does not exist or the email does
+        not match it - both are what stop this from being "type any
+        username, take the account", which is what the very first
+        version of this endpoint allowed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, new_password]
+              properties:
+                username:     { type: string, example: cse2025001 }
+                email:        { type: string, format: email }
+                new_password: { type: string, format: password }
+      responses:
+        "200": { description: Password updated }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Username and email did not match a known account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Too many attempts against this username
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/auth/password-policy:
+    get:
+      tags: [Auth]
+      summary: The password rules, so the UI can display them
+      security: []
+      responses:
+        "200": { description: Policy }
+
+  /api/students/me:
+    get:
+      tags: [Students]
+      summary: The signed-in student's dashboard
+      description: |
+        Identifies the student from the token, so no id appears in the
+        URL for a caller to tamper with.
+      responses:
+        "200":
+          description: Full analytics payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentAnalytics" }
+        "404": { description: Account is not linked to a student record }
+
+  /api/students:
+    get:
+      tags: [Students]
+      summary: Search students (staff only)
+      parameters:
+        - { name: q,         in: query, schema: { type: string }, description: Name or roll number }
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer, minimum: 1, maximum: 8 } }
+        - { name: risk,      in: query, schema: { type: string, enum: [low, medium, high, unknown] } }
+        - { name: sort,      in: query, schema: { type: string, enum: [name, roll_no, marks, attendance, rank, risk, semester] } }
+        - { name: order,     in: query, schema: { type: string, enum: [asc, desc] } }
+        - { name: page,      in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page,  in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200": { description: Paginated student list }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/students/{student_id}:
+    get:
+      tags: [Students]
+      summary: Full analytics for one student
+      description: Staff may read anyone. A student may read only themselves.
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Analytics payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentAnalytics" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/students/{student_id}/subjects:
+    get:
+      tags: [Students]
+      summary: Per-subject marks and attendance
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: One row per enrolled subject
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    subject_code:       { type: string }
+                    subject_name:       { type: string }
+                    credits:            { type: integer }
+                    assessment_count:   { type: integer }
+                    mark_percent:       { type: number, nullable: true }
+                    attendance_percent: { type: number, nullable: true }
+                    total_classes:      { type: integer, nullable: true }
+                    attended_classes:   { type: integer, nullable: true }
+                    result:             { type: string, enum: [pass, fail, pending] }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/students/{student_id}/timeline:
+    get:
+      tags: [Students]
+      summary: Assessments over time, with a trend verdict
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200": { description: Timeline and trend }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/students/{student_id}/comparison:
+    get:
+      tags: [Students]
+      summary: This student's marks against the class average
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200": { description: Per-subject comparison }
+
+  /api/students/{student_id}/report-card:
+    get:
+      tags: [Students]
+      summary: Report card with grades and GPA
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200": { description: Report card }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/students/{student_id}/report-card.csv:
+    get:
+      tags: [Students]
+      summary: Report card as a CSV download
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /api/branches:
+    get:
+      tags: [Catalog]
+      summary: All branches with student counts
+      responses:
+        "200": { description: Branch list }
+
+  /api/subjects:
+    get:
+      tags: [Catalog]
+      summary: Subjects, filterable by branch and semester
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Subject list }
+
+  /api/subjects/{subject_id}/stats:
+    get:
+      tags: [Catalog]
+      summary: Class statistics for one subject
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Subject statistics }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/analytics/cohort:
+    get:
+      tags: [Analytics]
+      summary: Headline numbers for a cohort
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Cohort summary }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/analytics/at-risk:
+    get:
+      tags: [Analytics]
+      summary: Students needing intervention, worst first
+      description: |
+        Each student comes back with a 0-100 `risk_score`, a `risk_band`,
+        and a written list of `reasons` and `recommendations`.
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+        - { name: limit,     in: query, schema: { type: integer, default: 50, maximum: 200 } }
+      responses:
+        "200": { description: At-risk list }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/analytics/grade-distribution:
+    get:
+      tags: [Analytics]
+      summary: Student counts per grade band
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Distribution }
+
+  /api/analytics/subjects:
+    get:
+      tags: [Analytics]
+      summary: Per-subject averages and pass rates
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Subject statistics }
+
+  /api/admin/overview:
+    get:
+      tags: [Admin]
+      summary: Everything the admin dashboard needs, in one call
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Dashboard payload }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/admin/students:
+    post:
+      tags: [Admin]
+      summary: Create a student, their login and their enrollments
+      description: |
+        Returns a randomly generated initial password. Passwords are
+        stored as plain text in this build, so it can also be looked up
+        again later with `GET /api/admin/students/{id}/credentials`
+        rather than only being shown here once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, roll_no, email, branch_id, semester, admission_year]
+              properties:
+                name:           { type: string, example: Priya Nair }
+                roll_no:        { type: string, example: CSE2023042 }
+                email:          { type: string, format: email }
+                branch_id:      { type: integer, example: 1 }
+                semester:       { type: integer, minimum: 1, maximum: 8 }
+                admission_year: { type: integer, example: 2023 }
+      responses:
+        "201": { description: Created, with the generated credentials }
+        "409": { description: Roll number or email already exists }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/admin/students/{student_id}:
+    patch:
+      tags: [Admin]
+      summary: Update a student
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:      { type: string }
+                email:     { type: string, format: email }
+                semester:  { type: integer }
+                branch_id: { type: integer }
+                is_active: { type: boolean }
+      responses:
+        "200": { description: Updated }
+    delete:
+      tags: [Admin]
+      summary: Deactivate a student
+      description: A soft delete - the academic history is preserved.
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200": { description: Deactivated }
+
+  /api/admin/students/{student_id}/reset-password:
+    post:
+      tags: [Admin]
+      summary: Issue a new random password for a student
+      description: Their previous password stops working immediately.
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200": { description: New password }
+
+  /api/admin/students/{student_id}/credentials:
+    get:
+      tags: [Admin]
+      summary: Look up a student's current username and password
+      description: |
+        Only possible because passwords are stored as plain text in this
+        build - with a hashed password there would be nothing to return.
+        Admin only; faculty enters marks but does not manage who can
+        sign in as whom.
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Current credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username: { type: string }
+                  password: { type: string }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/admin/assessments:
+    post:
+      tags: [Admin]
+      summary: Record or correct one assessment mark
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, subject_id, type, marks_obtained]
+              properties:
+                student_id:     { type: integer }
+                subject_id:     { type: integer }
+                type:           { type: string, enum: [quiz, assignment, midterm, final] }
+                marks_obtained: { type: number }
+                max_marks:      { type: number, default: 100 }
+                assessed_on:    { type: string, format: date }
+      responses:
+        "201": { description: Recorded }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/admin/import/marks:
+    post:
+      tags: [Admin]
+      summary: Bulk-import marks from CSV
+      description: |
+        Validates the entire file before writing anything. If any row is
+        rejected the response is `422` with a per-line error list and
+        **nothing** is imported.
+
+        Columns: `roll_no, subject_code, type, marks_obtained[, max_marks][, assessed_on]`
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200": { description: Imported }
+        "422": { description: Rows rejected, nothing imported }
+
+  /api/admin/import/attendance:
+    post:
+      tags: [Admin]
+      summary: Bulk-import attendance from CSV
+      description: "Columns: `roll_no, subject_code, class_date, status`"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200": { description: Imported }
+        "422": { description: Rows rejected, nothing imported }
+
+  /api/admin/import/template.csv:
+    get:
+      tags: [Admin]
+      summary: Download a pre-filled CSV template
+      responses:
+        "200":
+          description: CSV template
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /api/admin/export/cohort.csv:
+    get:
+      tags: [Admin]
+      summary: Export a cohort summary as CSV
+      parameters:
+        - { name: branch_id, in: query, schema: { type: integer } }
+        - { name: semester,  in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /api/admin/audit-log:
+    get:
+      tags: [Admin]
+      summary: Paginated audit trail
+      description: |
+        Most entries are written by database triggers rather than by the
+        application, so a change made directly in a SQL client is
+        recorded too.
+      parameters:
+        - { name: action,   in: query, schema: { type: string }, example: assessment.update }
+        - { name: page,     in: query, schema: { type: integer, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        "200": { description: Audit entries }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/admin/cohorts/promote:
+    post:
+      tags: [Admin]
+      summary: Promote a cohort to the next semester
+      description: Students with two or more backlogs are held back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [branch_id, semester]
+              properties:
+                branch_id: { type: integer }
+                semester:  { type: integer, minimum: 1, maximum: 7 }
+      responses:
+        "200": { description: Counts of promoted and held-back students }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    StudentId:
+      name: student_id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    BadRequest:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing, expired or invalid token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated, but not allowed to do this
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: No such resource
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:    { type: string, example: forbidden }
+            message: { type: string, example: You can only view your own records }
+            details: { type: object }
+
+    User:
+      type: object
+      properties:
+        user_id:    { type: integer }
+        username:   { type: string }
+        role:       { type: string, enum: [admin, faculty, student] }
+        student_id: { type: integer, nullable: true }
+        name:       { type: string }
+        must_change_password: { type: boolean }
+
+    RiskAssessment:
+      type: object
+      properties:
+        score: { type: number, minimum: 0, maximum: 100 }
+        band:  { type: string, enum: [low, medium, high, unknown] }
+        reasons:
+          type: array
+          items: { type: string }
+        recommendations:
+          type: array
+          items: { type: string }
+
+    StudentAnalytics:
+      type: object
+      properties:
+        student:
+          type: object
+          properties:
+            student_id: { type: integer }
+            name:       { type: string }
+            roll_no:    { type: string }
+            branch:     { type: string }
+            semester:   { type: integer }
+        summary:
+          type: object
+          properties:
+            subject_count:      { type: integer }
+            average_marks:      { type: number, nullable: true }
+            average_attendance: { type: number, nullable: true }
+            backlog_count:      { type: integer }
+            class_rank:         { type: integer }
+            cohort_size:        { type: integer }
+            percentile:         { type: number }
+        risk: { $ref: "#/components/schemas/RiskAssessment" }
+        trend:
+          type: object
+          properties:
+            direction: { type: string, enum: [improving, stable, declining, insufficient_data] }
+            change:    { type: number }
+            message:   { type: string }
+        subjects:
+          type: array
+          items:
+            type: object
+            properties:
+              subject_code:       { type: string }
+              subject_name:       { type: string }
+              credits:            { type: integer }
+              mark_percent:       { type: number, nullable: true }
+              attendance_percent: { type: number, nullable: true }
+              result:             { type: string, enum: [pass, fail, pending] }
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              subject_code: { type: string }
+              type:         { type: string }
+              assessed_on:  { type: string, format: date }
+              percent:      { type: number }
+        comparison:
+          type: array
+          items:
+            type: object
+            properties:
+              subject_code:    { type: string }
+              student_percent: { type: number }
+              class_average:   { type: number }
+              difference:      { type: number }
+
+security:
+  - bearerAuth: []

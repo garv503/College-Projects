@@ -1,0 +1,42 @@
+# Ruff replaces flake8 + black + isort with one tool.
+#   ruff check backend/          lint
+#   ruff format backend/         format
+#   ruff check --fix backend/    fix what can be fixed automatically
+
+line-length = 90
+target-version = "py311"
+
+exclude = [".venv", "__pycache__"]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes: undefined names, unused imports
+    "I",   # isort: import ordering
+    "B",   # flake8-bugbear: likely bugs
+    "UP",  # pyupgrade: modernise syntax
+    "C4",  # comprehension simplifications
+]
+
+ignore = [
+    "E501",  # line length is handled by the formatter
+    # `raise ... from err` inside an `except` block. The API deliberately
+    # converts driver errors into clean ApiErrors without chaining, so a
+    # database message never reaches the client through __cause__.
+    "B904",
+    # Prefers `isinstance(x, int | float)` over `isinstance(x, (int, float))`.
+    # Both work; the tuple form is the one most people have read before,
+    # and this codebase is meant to be readable over clever.
+    "UP038",
+]
+
+[lint.per-file-ignores]
+# The app factory adds the backend directory to sys.path before its own
+# imports, so those imports cannot sit at the top of the file.
+"app.py" = ["E402"]
+"seed_demo.py" = ["E402"]
+"tests/conftest.py" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

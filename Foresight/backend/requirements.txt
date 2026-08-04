@@ -1,0 +1,13 @@
+# Runtime dependencies for the Foresight API.
+#
+# This file used to be a `pip freeze` of the whole machine - it listed
+# TensorFlow, PyTorch, Django and Jupyter, none of which this project
+# imports. Anyone installing it downloaded several GB to run a Flask app.
+# Only direct dependencies belong here; pip resolves the rest.
+
+Flask==3.1.3                  # web framework
+flask-cors==6.0.2             # browser calls the API from a different origin
+mysql-connector-python==9.6.0 # official MySQL driver, includes pooling
+PyJWT==2.10.1                 # signs and verifies the auth tokens
+python-dotenv==1.1.0          # loads config from .env instead of hardcoding
+Werkzeug==3.1.7                # ships with Flask; pinned so it moves deliberately

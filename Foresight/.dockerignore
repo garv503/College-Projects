@@ -1,0 +1,48 @@
+# Everything here is excluded from the build context.
+#
+# Without this file, `docker build` uploads the entire project directory
+# to the daemon before it runs a single instruction - including .venv
+# (hundreds of megabytes) and .git. That makes every build slow, and it
+# risks baking a local virtualenv or a real .env into the image.
+
+# --- Secrets: never copy a real .env into an image -------------------
+.env
+.env.local
+
+# --- Local virtualenvs (the image installs its own dependencies) -----
+.venv/
+venv/
+env/
+
+# --- Version control -------------------------------------------------
+.git/
+.gitignore
+.github/
+
+# --- Python artefacts ------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# --- Test and tool caches --------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Tests are not needed at runtime ---------------------------------
+backend/tests/
+backend/requirements-dev.txt
+
+# --- Editors / OS ----------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Docs and misc that do not belong in the image -------------------
+README.md
+*.docx
+*.log

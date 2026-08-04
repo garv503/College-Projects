@@ -1,0 +1,136 @@
+/* =====================================================================
+   Design tokens
+   =====================================================================
+   Every colour, space, radius and duration in this project is declared
+   here once. Nothing further down the stylesheet hardcodes a hex value -
+   components reference roles (--surface, --text-1), never a raw hex, so
+   the whole palette can be re-tuned by editing this one file.
+
+   The old stylesheet had six variables and then hardcoded colours
+   inline in the HTML, so changing a colour meant hunting through markup.
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Neutral surfaces ------------------------------------------- */
+  --page:            #f6f7f9;
+  --surface:         #ffffff;
+  --surface-raised:  #ffffff;
+  --surface-sunken:  #f1f3f6;
+  --surface-hover:   #f6f7f9;
+
+  /* --- Text ------------------------------------------------------- */
+  --text-1: #10131a;   /* headings, values */
+  --text-2: #4a5160;   /* body */
+  --text-3: #767e8f;   /* labels, axis text, captions */
+
+  /* --- Lines ------------------------------------------------------ */
+  --border:        #e3e6ec;
+  --border-strong: #ccd2dc;
+  --grid:          #eceff4;   /* chart gridlines: recessive, hairline */
+
+  /* --- Brand ------------------------------------------------------ */
+  --accent:          #2a78d6;
+  --accent-hover:    #1c5cab;
+  --accent-quiet:    #eaf2fd;
+  --accent-contrast: #ffffff;
+
+  /* --- Status ----------------------------------------------------- *
+   * Fixed roles, never reused as chart series colours. Each is always
+   * paired with an icon and a text label in the UI, because on a light
+   * surface `warning` and `serious` sit below 3:1 contrast by design -
+   * colour alone is never allowed to carry the meaning.               */
+  --good:     #0ca30c;
+  --warning:  #fab219;
+  --serious:  #ec835a;
+  --critical: #d03b3b;
+
+  --good-quiet:     #e7f6e7;
+  --warning-quiet:  #fdf3dd;
+  --serious-quiet:  #fceee8;
+  --critical-quiet: #fbe9e9;
+
+  --good-ink:     #0a6b0a;
+  --warning-ink:  #8a5f00;
+  --serious-ink:  #a34e29;
+  --critical-ink: #a52a2a;
+
+  /* --- Chart series ----------------------------------------------- *
+   * Fixed slot order. Assigned in sequence and never cycled - a 9th
+   * series folds into "Other" rather than inventing a colour, because
+   * a generated hue is indistinguishable from an existing one under
+   * colour-vision deficiency.
+   *
+   * Validated with the palette checker: worst adjacent CVD deltaE 9.1,
+   * worst normal-vision deltaE 19.6. Slots 3-5 fall below 3:1 against
+   * white, so every chart using them also ships a legend, tooltips and
+   * the same numbers in a table - the required relief.                */
+  --series-1: #2a78d6;  /* blue    */
+  --series-2: #eb6834;  /* orange  */
+  --series-3: #1baf7a;  /* aqua    */
+  --series-4: #eda100;  /* yellow  */
+  --series-5: #e87ba4;  /* magenta */
+
+  /* Sequential ramp, one hue, light to dark. For magnitude only. */
+  --seq-1: #cde2fb;
+  --seq-2: #9ec5f4;
+  --seq-3: #6da7ec;
+  --seq-4: #3987e5;
+  --seq-5: #256abf;
+  --seq-6: #184f95;
+
+  /* Neutral for de-emphasised marks in an emphasis chart. */
+  --series-muted: #c2c8d4;
+
+  /* --- Spacing ---------------------------------------------------- *
+   * A 4px scale. Sticking to it is what makes unrelated components
+   * look like they belong to the same product.                        */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+
+  /* --- Radius ----------------------------------------------------- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-full: 999px;
+
+  /* --- Elevation -------------------------------------------------- *
+   * Low-contrast, large-blur shadows. Deep drop shadows are the single
+   * clearest tell of a dated interface.                               */
+  --shadow-1: 0 1px 2px rgba(16, 19, 26, 0.04),
+              0 1px 3px rgba(16, 19, 26, 0.06);
+  --shadow-2: 0 2px 4px rgba(16, 19, 26, 0.04),
+              0 4px 12px rgba(16, 19, 26, 0.08);
+  --shadow-3: 0 8px 24px rgba(16, 19, 26, 0.12),
+              0 2px 6px rgba(16, 19, 26, 0.06);
+
+  /* --- Type ------------------------------------------------------- *
+   * The system UI stack: no webfont download, and the interface reads
+   * as native on every platform.                                      */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+          Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "Liberation Mono", monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.875rem;
+  --fs-base: 0.9375rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+  --fs-3xl: 2.25rem;
+
+  /* --- Motion ----------------------------------------------------- */
+  --t-fast: 120ms;
+  --t-mid: 200ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --header-h: 60px;
+}

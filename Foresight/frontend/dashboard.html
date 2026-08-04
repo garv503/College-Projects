@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Foresight</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <!--
+    Chart.js from a CDN, pinned to an exact version. `@4` would let a
+    future 4.x quietly change rendering behaviour on a page nobody is
+    watching; an exact pin means this looks the same in a year.
+  -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="appbar">
+    <div class="container">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">FS</span>
+        <span>Foresight</span>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button id="downloadBtn" class="btn btn-outline btn-sm" type="button">
+        ↓ Report card
+      </button>
+      <button id="passwordBtn" class="btn btn-sm" type="button">Password</button>
+
+      <div class="row" style="gap: var(--sp-2)">
+        <div class="avatar" id="userAvatar" aria-hidden="true">–</div>
+        <button id="logoutBtn" class="btn btn-sm" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container stack">
+
+      <!-- Identity -->
+      <div class="row-wrap" style="justify-content: space-between">
+        <div>
+          <h1 id="studentName">
+            <span class="skeleton skeleton-title" style="display:block"></span>
+          </h1>
+          <p class="muted text-sm" id="studentMeta"></p>
+        </div>
+        <div id="riskBadgeSlot"></div>
+      </div>
+
+      <!-- Headline numbers. Stat tiles, not charts: a single current
+           value gains nothing from being drawn as one bar. -->
+      <section class="grid grid-stats" aria-label="Summary">
+        <div class="stat">
+          <div class="stat-label">Average marks</div>
+          <div class="stat-value" id="statMarks">—</div>
+          <div class="stat-meta" id="statMarksMeta"></div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">Attendance</div>
+          <div class="stat-value" id="statAttendance">—</div>
+          <div class="stat-meta" id="statAttendanceMeta"></div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">Class rank</div>
+          <div class="stat-value" id="statRank">—</div>
+          <div class="stat-meta" id="statRankMeta"></div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">Trend</div>
+          <div class="stat-value" id="statTrend">—</div>
+          <div class="stat-meta" id="statTrendMeta"></div>
+        </div>
+      </section>
+
+      <!-- Risk explanation: the "why", which a score alone never gives -->
+      <section class="card" id="riskCard" hidden>
+        <div class="card-header">
+          <div>
+            <div class="card-title">Academic standing</div>
+            <div class="card-sub" id="riskSubtitle"></div>
+          </div>
+        </div>
+        <div class="card-body stack-sm">
+          <div id="riskReasons" class="reason-list"></div>
+          <div id="riskRecommendations"></div>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="grid grid-halves">
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">You vs the class</div>
+              <div class="card-sub">Your mark against the class average, per subject</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-frame"><canvas id="comparisonChart"></canvas></div>
+            <div id="comparisonLegend" class="legend"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Marks over time</div>
+              <div class="card-sub">Every assessment, as a percentage of what it was worth</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-frame"><canvas id="trendChart"></canvas></div>
+            <div id="trendLegend" class="legend"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Attendance by subject</div>
+            <div class="card-sub" id="attendanceSub">Bars below the requirement are highlighted</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-frame short"><canvas id="attendanceChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- The table is not redundant with the charts: it is the
+           accessible, exact-value view of the same data, and it is what
+           makes the light-mode chart colours legitimate. -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Subject breakdown</div>
+            <div class="card-sub">Exact figures for every enrolled subject</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Subject</th>
+                <th scope="col" class="num">Credits</th>
+                <th scope="col" class="num">Marks</th>
+                <th scope="col">Attendance</th>
+                <th scope="col">Result</th>
+              </tr>
+            </thead>
+            <tbody id="subjectTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
