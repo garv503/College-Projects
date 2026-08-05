@@ -1,5 +1,7 @@
 package com.util;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +51,19 @@ public final class Csrf {
         String expected = (String) session.getAttribute(SESSION_ATTRIBUTE);
         String supplied = request.getParameter(PARAMETER_NAME);
 
-        return expected != null && PasswordHasher.constantTimeEquals(expected, supplied);
+        return expected != null && constantTimeEquals(expected, supplied);
+    }
+
+    /**
+     * Compares two tokens without short-circuiting on the first difference, so
+     * response timing does not reveal how much of the token was correct.
+     */
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                a.getBytes(StandardCharsets.UTF_8),
+                b.getBytes(StandardCharsets.UTF_8));
     }
 }

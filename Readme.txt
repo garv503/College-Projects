@@ -34,13 +34,26 @@ Server:    Apache Tomcat 9.x (NOT 10+ - see Compatibility below)
 --------------------------------------------------------------------
  Security
 --------------------------------------------------------------------
-The application enforces the following. Each replaced a real weakness
-in the original version:
+KNOWN AND DELIBERATE EXCEPTION - PASSWORD STORAGE
 
-- Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes
-  (120,000 iterations), never as plain text. Accounts created before
-  hashing existed are detected on sign-in, verified once against the
-  old value, and transparently re-saved as a hash.
+  Passwords are stored in the database as plain text, by explicit
+  project choice. Anyone who can read the user table - through a
+  leaked backup, a SQL injection elsewhere, or shared access to the
+  machine - therefore obtains every account's real password. Because
+  people reuse passwords, that exposure is not limited to this
+  application.
+
+  Do not use this build with passwords anyone actually uses
+  elsewhere, and do not deploy it on a public network as-is.
+
+  To reverse this, hash on write and verify on read in
+  com/DAO/UserDAO.java (addUser and loginUser). The column is already
+  VARCHAR(255), which is wide enough for a hash, so no schema change
+  is needed.
+
+Everything else below is enforced. Each replaced a real weakness in
+the original version:
+
 - Every note query is scoped by owner id, so a note cannot be read,
   edited, or deleted by anyone but its author - changing the id in a
   URL simply reports "not found".
@@ -67,7 +80,6 @@ src/main/java/com/
   DAO/PostDAO.java            Owner-scoped note queries, search, pin
   User/UserDetails.java       User model
   User/Post.java              Note model
-  util/PasswordHasher.java    PBKDF2 hashing and verification
   util/Csrf.java              Per-session CSRF tokens
   util/WebUtils.java          Session user, flash messages, validation
   filter/AuthFilter.java      Requires sign-in outside public pages
@@ -89,7 +101,8 @@ src/main/webapp/
   edit.jsp         Edit note form
   showNotes.jsp    Note list with search
   errorPage.jsp    Friendly error page
-  all_component/   allcss, icons (SVG sprite), navbar, footer, flash
+  all_component/   allcss, icons (SVG sprite), navbar, flash,
+                   passwordToggle
   css/style.css    The whole design system
   WEB-INF/web.xml  Welcome files (routes come from @WebServlet)
 
@@ -140,7 +153,7 @@ repeatedly: a fresh database is created, an older one is upgraded in
 place, and a current one is left alone. It will, as needed:
 
   - create the user and post tables
-  - widen user.password to VARCHAR(255) (holds a hash, not a password)
+  - widen user.password to VARCHAR(255)
   - widen user.email and add a UNIQUE constraint on it
   - add user.created_at
   - widen post.title to VARCHAR(200)

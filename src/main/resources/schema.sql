@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS user (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     full_name  VARCHAR(100) NOT NULL,
     email      VARCHAR(190) NOT NULL,
-    -- Holds a PBKDF2 hash ("pbkdf2$iterations$salt$hash"), never a raw
-    -- password. 255 chars leaves room for future/stronger formats.
+    -- Stores the password as plain text, by explicit project choice. Anyone
+    -- who can read this table can read every account's real password.
     password   VARCHAR(255) NOT NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Stops two accounts sharing one email, which previously let a duplicate

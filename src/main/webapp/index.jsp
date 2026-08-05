@@ -71,14 +71,12 @@
 
                     <article class="feature">
                         <div class="feature-icon"><svg class="icon"><use href="#i-lock"/></svg></div>
-                        <h3>Private by default</h3>
-                        <p>Passwords are hashed and every note is locked to its owner.</p>
+                        <h3>Yours alone</h3>
+                        <p>Every note is locked to its owner and visible only to you.</p>
                     </article>
                 </div>
             </div>
         </section>
     </main>
-
-    <%@ include file="all_component/footer.jsp" %>
 </body>
 </html>

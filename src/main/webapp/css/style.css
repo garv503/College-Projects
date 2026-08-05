@@ -880,26 +880,6 @@ a:hover { text-decoration: underline; }
 }
 
 /* --------------------------------------------------------------------------
-   Footer
-   -------------------------------------------------------------------------- */
-.site-footer {
-    flex-shrink: 0;
-    padding: 26px 0;
-    border-top: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text-muted);
-    font-size: 0.88rem;
-}
-
-.footer-inner {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    justify-content: space-between;
-}
-
-/* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
 @media (max-width: 860px) {
@@ -960,7 +940,6 @@ a:hover { text-decoration: underline; }
 
 @media print {
     .site-header,
-    .site-footer,
     .note-actions,
     .toolbar { display: none !important; }
 

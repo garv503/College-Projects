@@ -5,9 +5,9 @@ import java.sql.Timestamp;
 /**
  * An application user.
  *
- * <p>{@code password} holds a hash, never a raw password, and is cleared before
- * the object is placed in the session so the credential is not kept in memory
- * for the life of the session.
+ * <p>{@code password} carries the raw password only while credentials are being
+ * checked; it is cleared before the object is placed in the session, so the
+ * credential is not kept in memory for the life of the session.
  */
 public class UserDetails {
     private int id;

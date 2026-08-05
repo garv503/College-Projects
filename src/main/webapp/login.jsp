@@ -65,7 +65,5 @@
     </main>
 
     <%@ include file="all_component/passwordToggle.jsp" %>
-
-    <%@ include file="all_component/footer.jsp" %>
 </body>
 </html>

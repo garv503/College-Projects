@@ -8,10 +8,16 @@ import java.sql.SQLIntegrityConstraintViolationException;
 
 import com.Db.DBConnect;
 import com.User.UserDetails;
-import com.util.PasswordHasher;
 
 /**
  * User persistence: registration and credential checking.
+ *
+ * <p><strong>Passwords are stored as plain text, by explicit project choice.</strong>
+ * Anyone who can read the {@code user} table can therefore read every account's
+ * real password, and because people reuse passwords, that exposure is not
+ * limited to this application. Hashing them instead is a one-line change in
+ * {@link #addUser} and {@link #loginUser}; see the Security section of the
+ * README before deploying this anywhere real.
  *
  * <p>Connections are borrowed per operation and returned by the
  * try-with-resources blocks, rather than sharing one long-lived connection.
@@ -20,13 +26,15 @@ public class UserDAO {
 
     /** Thrown when a registration collides with an existing account. */
     public static class EmailAlreadyExistsException extends Exception {
+        private static final long serialVersionUID = 1L;
+
         public EmailAlreadyExistsException(String message) {
             super(message);
         }
     }
 
     /**
-     * Creates a user, storing a PBKDF2 hash of the password.
+     * Creates a user, storing the password exactly as supplied.
      *
      * @throws EmailAlreadyExistsException if the email is already registered
      */
@@ -38,7 +46,7 @@ public class UserDAO {
 
             ps.setString(1, us.getName());
             ps.setString(2, us.getEmail());
-            ps.setString(3, PasswordHasher.hash(us.getPassword()));
+            ps.setString(3, us.getPassword());
 
             return ps.executeUpdate() == 1;
 
@@ -55,11 +63,6 @@ public class UserDAO {
     /**
      * Verifies credentials and returns the matching user, or {@code null} when
      * the email is unknown or the password is wrong.
-     *
-     * <p>Accounts created before hashing existed still hold a raw password. Those
-     * are detected, verified against the raw value once, and then transparently
-     * re-saved as a hash, so old accounts keep working and self-heal on first
-     * successful login.
      */
     public UserDetails loginUser(UserDetails us) {
         String query = "SELECT id, full_name, email, password, created_at FROM user WHERE email = ?";
@@ -75,24 +78,12 @@ public class UserDAO {
                 }
 
                 String stored = rs.getString("password");
-                String supplied = us.getPassword();
-                boolean legacyPlaintext = !PasswordHasher.isHashed(stored);
-
-                boolean valid = legacyPlaintext
-                        ? stored.equals(supplied)
-                        : PasswordHasher.matches(supplied, stored);
-
-                if (!valid) {
+                if (stored == null || !stored.equals(us.getPassword())) {
                     return null;
                 }
 
                 UserDetails user = map(rs);
-
-                if (legacyPlaintext) {
-                    upgradeStoredPassword(user.getId(), supplied);
-                }
-
-                // Never carry the credential around in the session object.
+                // Not carried into the session; nothing in the UI needs it.
                 user.setPassword(null);
                 return user;
             }
@@ -118,24 +109,6 @@ public class UserDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
-        }
-    }
-
-    /** Replaces a legacy plaintext password with a hash of the same value. */
-    private void upgradeStoredPassword(int userId, String rawPassword) {
-        String query = "UPDATE user SET password = ? WHERE id = ?";
-
-        try (Connection conn = DBConnect.getConnection();
-                PreparedStatement ps = conn.prepareStatement(query)) {
-
-            ps.setString(1, PasswordHasher.hash(rawPassword));
-            ps.setInt(2, userId);
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            // A failed upgrade must not fail the login itself; it will be
-            // retried on the user's next successful sign-in.
-            e.printStackTrace();
         }
     }
 

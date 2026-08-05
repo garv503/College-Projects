@@ -55,6 +55,7 @@ public class DatabaseInitializer implements ServletContextListener {
                             + "id INT AUTO_INCREMENT PRIMARY KEY,"
                             + "full_name VARCHAR(100) NOT NULL,"
                             + "email VARCHAR(190) NOT NULL,"
+                            // Plain text, by explicit project choice - see UserDAO.
                             + "password VARCHAR(255) NOT NULL,"
                             + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                             + "CONSTRAINT uq_user_email UNIQUE (email)"
@@ -78,7 +79,7 @@ public class DatabaseInitializer implements ServletContextListener {
     }
 
     private void migrateUserTable(Connection conn) throws SQLException {
-        // Widened because the column now holds a PBKDF2 hash, not a raw password.
+        // Widened so a long password is never silently truncated on insert.
         if (columnLength(conn, "user", "password") < 255) {
             execute(conn, "ALTER TABLE user MODIFY COLUMN password VARCHAR(255) NOT NULL",
                     "widened user.password for hashed values");
