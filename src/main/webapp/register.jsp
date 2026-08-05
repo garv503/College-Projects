@@ -45,9 +45,19 @@
 
                     <div class="field">
                         <label for="upassword">Password</label>
-                        <input class="input" type="password" id="upassword" name="upassword"
-                               placeholder="At least 8 characters" autocomplete="new-password"
-                               minlength="8" required>
+                        <div class="password-wrap">
+                            <input class="input" type="password" id="upassword" name="upassword"
+                                   placeholder="At least 8 characters" autocomplete="new-password"
+                                   minlength="8" required>
+                            <%-- Hidden until the script enables it, so it is never
+                                 a dead button when scripting is unavailable. --%>
+                            <button type="button" class="password-toggle" hidden
+                                    data-password-toggle="upassword"
+                                    aria-pressed="false" aria-label="Show password" title="Show password">
+                                <svg class="icon" data-eye="show"><use href="#i-eye"/></svg>
+                                <svg class="icon" data-eye="hide" hidden><use href="#i-eye-off"/></svg>
+                            </button>
+                        </div>
                         <p class="field-hint">Use 8 characters or more.</p>
                     </div>
 
@@ -62,6 +72,8 @@
             </div>
         </div>
     </main>
+
+    <%@ include file="all_component/passwordToggle.jsp" %>
 
     <%@ include file="all_component/footer.jsp" %>
 </body>

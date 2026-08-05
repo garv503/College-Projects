@@ -6,40 +6,43 @@
    hosts, which meant it rendered unstyled with no network. Icons are now
    inline SVG and everything below is local.
 
-   Supports light and dark, following the OS setting and an explicit
-   data-theme override set by the theme toggle.
+   Single fixed dark theme: midnight slate surfaces with a cyan-to-blue
+   accent. There is no light variant and no runtime switching, so these
+   tokens are the only source of colour in the app.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    Tokens
    -------------------------------------------------------------------------- */
 :root {
-    --brand-500: #7c3aed;
-    --brand-600: #6d28d9;
-    --brand-400: #a78bfa;
-    --brand-glow: rgba(124, 58, 237, 0.35);
+    /* Accent ramp: cyan into blue. */
+    --brand-500: #22a7d8;
+    --brand-600: #2f6fe0;
+    --brand-400: #4fd1e8;
+    --brand-glow: rgba(45, 165, 224, 0.34);
 
-    --bg: #f6f5fb;
-    --bg-elevated: #ffffff;
-    --bg-sunken: #eceaf5;
-    --surface-hover: #f2f0fa;
+    /* Surfaces: cool slate, each step a clear level apart. */
+    --bg: #0c111c;
+    --bg-elevated: #141b2b;
+    --bg-sunken: #070b13;
+    --surface-hover: #1d2739;
 
-    --text: #191627;
-    --text-muted: #625d7a;
-    --text-faint: #8b86a3;
+    --text: #e9eefa;
+    --text-muted: #9aa8c2;
+    --text-faint: #6b7994;
 
-    --border: #e2dff0;
-    --border-strong: #cfcae4;
+    --border: #212c42;
+    --border-strong: #33415e;
 
-    --success: #0f9d6e;
-    --success-bg: #e6f7f1;
-    --danger: #dc2b4a;
-    --danger-bg: #fdeaee;
-    --warning: #b7791f;
+    --success: #2dd4a7;
+    --success-bg: rgba(45, 212, 167, 0.13);
+    --danger: #f76d84;
+    --danger-bg: rgba(247, 109, 132, 0.13);
+    --warning: #f0b429;
 
-    --shadow-sm: 0 1px 2px rgba(24, 20, 45, 0.06);
-    --shadow-md: 0 4px 16px rgba(24, 20, 45, 0.08);
-    --shadow-lg: 0 12px 32px rgba(24, 20, 45, 0.12);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 4px 18px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.6);
 
     --radius-sm: 8px;
     --radius: 14px;
@@ -50,62 +53,7 @@
 
     --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 
-    color-scheme: light;
-}
-
-/* Dark theme: OS preference by default... */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --bg: #131020;
-        --bg-elevated: #1c1830;
-        --bg-sunken: #0e0c19;
-        --surface-hover: #251f3d;
-
-        --text: #f2f0fa;
-        --text-muted: #a8a2c4;
-        --text-faint: #7b7599;
-
-        --border: #2e2748;
-        --border-strong: #3f3760;
-
-        --success: #34d399;
-        --success-bg: rgba(16, 185, 129, 0.14);
-        --danger: #fb7185;
-        --danger-bg: rgba(244, 63, 94, 0.14);
-        --warning: #fbbf24;
-
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-        --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-
-        color-scheme: dark;
-    }
-}
-
-/* ...and an explicit toggle that must win over the OS in both directions. */
-:root[data-theme="dark"] {
-    --bg: #131020;
-    --bg-elevated: #1c1830;
-    --bg-sunken: #0e0c19;
-    --surface-hover: #251f3d;
-
-    --text: #f2f0fa;
-    --text-muted: #a8a2c4;
-    --text-faint: #7b7599;
-
-    --border: #2e2748;
-    --border-strong: #3f3760;
-
-    --success: #34d399;
-    --success-bg: rgba(16, 185, 129, 0.14);
-    --danger: #fb7185;
-    --danger-bg: rgba(244, 63, 94, 0.14);
-    --warning: #fbbf24;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-
+    /* Tells the browser to render form controls and scrollbars dark too. */
     color-scheme: dark;
 }
 
@@ -149,18 +97,12 @@ h3 { font-size: 1.2rem; }
 p { margin: 0 0 1rem; }
 
 a {
-    color: var(--brand-500);
+    /* The lighter end of the ramp; the mid tone is too dim on dark surfaces. */
+    color: var(--brand-400);
     text-decoration: none;
 }
 
 a:hover { text-decoration: underline; }
-
-:root[data-theme="dark"] a,
-:root:not([data-theme="light"]) a { color: var(--brand-400); }
-
-@media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) a { color: var(--brand-600); }
-}
 
 /* Visible keyboard focus everywhere; the old UI had none. */
 :focus-visible {
@@ -264,7 +206,7 @@ a:hover { text-decoration: underline; }
     height: 34px;
     border-radius: 10px;
     color: #fff;
-    background: linear-gradient(135deg, var(--brand-500), #ec4899);
+    background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
     box-shadow: 0 4px 12px var(--brand-glow);
 }
 
@@ -318,7 +260,7 @@ a:hover { text-decoration: underline; }
     font-size: 0.85rem;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, var(--brand-500), #ec4899);
+    background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
 }
 
 .user-chip {
@@ -489,7 +431,7 @@ a:hover { text-decoration: underline; }
     margin: 0 auto 16px;
     border-radius: 16px;
     color: #fff;
-    background: linear-gradient(135deg, var(--brand-500), #ec4899);
+    background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
     box-shadow: 0 8px 22px var(--brand-glow);
 }
 
@@ -567,6 +509,50 @@ a:hover { text-decoration: underline; }
     color: var(--text-faint);
 }
 
+/* Password field with a reveal button sitting inside the input. */
+.password-wrap {
+    position: relative;
+}
+
+.password-wrap .input {
+    /* Keep typed text clear of the button. */
+    padding-right: 48px;
+}
+
+/* Edge/IE render their own reveal control, which would sit under ours. */
+.password-wrap .input::-ms-reveal,
+.password-wrap .input::-ms-clear {
+    display: none;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+
+.password-toggle:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.password-toggle .icon {
+    width: 18px;
+    height: 18px;
+}
+
 .input-group {
     display: flex;
     gap: 8px;
@@ -640,7 +626,7 @@ a:hover { text-decoration: underline; }
 }
 
 .gradient-text {
-    background: linear-gradient(120deg, var(--brand-500), #ec4899);
+    background: linear-gradient(120deg, var(--brand-400), var(--brand-600));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

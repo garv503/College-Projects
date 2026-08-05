@@ -5,6 +5,8 @@
     escapes it. The old navbar wrote the name and email straight into the page
     with <%= %>, so a name containing markup was executed as HTML.
 
+    The app has one fixed dark theme, so there is no theme switcher here.
+
     Sign-out is a POST form carrying the CSRF token, not a link, so another site
     cannot sign the user out by pointing an image at the URL.
 --%>
@@ -46,12 +48,6 @@
             </c:if>
 
             <div class="nav-actions">
-                <button type="button" class="btn btn-icon" id="themeToggle"
-                        aria-label="Switch between light and dark theme">
-                    <svg class="icon" data-theme-icon="light"><use href="#i-sun"/></svg>
-                    <svg class="icon" data-theme-icon="dark" style="display:none"><use href="#i-moon"/></svg>
-                </button>
-
                 <c:choose>
                     <c:when test="${not empty sessionScope.userD}">
                         <span class="user-chip" title="<c:out value='${sessionScope.userD.email}'/>">
@@ -78,39 +74,3 @@
         </nav>
     </div>
 </header>
-
-<script>
-    (function () {
-        var toggle = document.getElementById('themeToggle');
-        if (!toggle) { return; }
-
-        var root = document.documentElement;
-        var sun = toggle.querySelector('[data-theme-icon="light"]');
-        var moon = toggle.querySelector('[data-theme-icon="dark"]');
-
-        function currentTheme() {
-            return root.getAttribute('data-theme')
-                || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        }
-
-        // Offer the theme the click will switch *to*.
-        function paintIcon() {
-            var dark = currentTheme() === 'dark';
-            sun.style.display = dark ? '' : 'none';
-            moon.style.display = dark ? 'none' : '';
-        }
-
-        toggle.addEventListener('click', function () {
-            var next = currentTheme() === 'dark' ? 'light' : 'dark';
-            root.setAttribute('data-theme', next);
-            try {
-                localStorage.setItem('enotes-theme', next);
-            } catch (e) {
-                /* Not persistable; the choice still applies to this page view. */
-            }
-            paintIcon();
-        });
-
-        paintIcon();
-    })();
-</script>

@@ -38,8 +38,18 @@
 
                     <div class="field">
                         <label for="upassword">Password</label>
-                        <input class="input" type="password" id="upassword" name="upassword"
-                               placeholder="Your password" autocomplete="current-password" required>
+                        <div class="password-wrap">
+                            <input class="input" type="password" id="upassword" name="upassword"
+                                   placeholder="Your password" autocomplete="current-password" required>
+                            <%-- Hidden until the script enables it, so it is never
+                                 a dead button when scripting is unavailable. --%>
+                            <button type="button" class="password-toggle" hidden
+                                    data-password-toggle="upassword"
+                                    aria-pressed="false" aria-label="Show password" title="Show password">
+                                <svg class="icon" data-eye="show"><use href="#i-eye"/></svg>
+                                <svg class="icon" data-eye="hide" hidden><use href="#i-eye-off"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">
@@ -53,6 +63,8 @@
             </div>
         </div>
     </main>
+
+    <%@ include file="all_component/passwordToggle.jsp" %>
 
     <%@ include file="all_component/footer.jsp" %>
 </body>
