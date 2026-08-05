@@ -11,14 +11,9 @@ import com.DAO.PostDAO;
 import com.User.UserDetails;
 import com.util.WebUtils;
 
-/**
- * Deletes a note the signed-in user owns.
- *
- * <p>POST only. This was a GET link taking just a note id, so it could delete
- * any user's note by number and could be triggered from any other site.
- */
-@WebServlet("/deleteServlet")
-public class deleteServlet extends HttpServlet {
+/** Pins or unpins a note, so it sorts to the top of the list. */
+@WebServlet("/PinServlet")
+public class PinServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
@@ -34,12 +29,14 @@ public class deleteServlet extends HttpServlet {
 
         int noteId = WebUtils.intParam(request, "note_id", -1);
 
-        if (noteId >= 1 && new PostDAO().deleteNote(noteId, user.getId())) {
-            WebUtils.success(request, "Note deleted.");
-        } else {
+        if (noteId < 1 || !new PostDAO().togglePin(noteId, user.getId())) {
             WebUtils.error(request, "That note could not be found.");
         }
 
-        response.sendRedirect("showNotes.jsp");
+        // Preserve an active search so pinning from search results keeps context.
+        String search = WebUtils.trimmed(request, "q");
+        response.sendRedirect(search == null
+                ? "showNotes.jsp"
+                : "showNotes.jsp?q=" + java.net.URLEncoder.encode(search, "UTF-8"));
     }
 }

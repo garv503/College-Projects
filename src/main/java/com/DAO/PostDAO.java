@@ -6,146 +6,216 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.Db.DBConnect;
 import com.User.Post;
 
+/**
+ * Note persistence.
+ *
+ * <p>Every read and write is scoped by owner id. Previously a note could be
+ * fetched, edited, or deleted by id alone, so any signed-in user could act on
+ * another user's notes just by changing the number in the URL. Passing the
+ * owner into the {@code WHERE} clause means a mismatched id simply affects zero
+ * rows instead of touching someone else's data.
+ */
 public class PostDAO {
-    private Connection conn;
 
-    // Constructor to initialize the database connection
-    public PostDAO(Connection conn) {
-        this.conn = conn;
-    }
+    private static final String COLUMNS =
+            "id, title, content, pinned, uid, created_at, updated_at";
 
-    // Method to add a note to the database
-    public boolean AddNotes(String title, String content, int uid) {
-        boolean result = false; // Flag to indicate success
-        PreparedStatement stmt = null;
+    /** Creates a note owned by {@code uid}. */
+    public boolean addNote(String title, String content, int uid) {
+        String query = "INSERT INTO post (title, content, uid) VALUES (?, ?, ?)";
 
-        try {
-            // Log the parameters being inserted for debugging
-            System.out.println("Inserting note with title: " + title + ", content: " + content + ", user ID: " + uid);
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
 
-            // SQL query to insert the note
-            String query = "INSERT INTO post (title, content, uid) VALUES (?, ?, ?)";
-            stmt = conn.prepareStatement(query);
-            stmt.setString(1, title);
-            stmt.setString(2, content);
-            stmt.setInt(3, uid);
+            ps.setString(1, title);
+            ps.setString(2, content);
+            ps.setInt(3, uid);
 
-            // Execute the insert query
-            int rowsAffected = stmt.executeUpdate();
+            return ps.executeUpdate() == 1;
 
-            // Check if insertion was successful
-            if (rowsAffected > 0) {
-                result = true; // Data inserted successfully
-            } else {
-                System.out.println("No rows affected. Data not inserted.");
-            }
         } catch (SQLException e) {
-            e.printStackTrace(); // Print any SQL errors
-        } finally {
-            // Close the PreparedStatement to prevent memory leaks
-            try {
-                if (stmt != null) stmt.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            e.printStackTrace();
+            return false;
         }
-
-        return result; // Return the result of the operation
     }
 
-    // Method to retrieve a list of notes for a given user ID
-    public List<Post> getData(int id) {
-        List<Post> list = new ArrayList<>(); // List to hold notes
+    /** Returns every note owned by {@code uid}, pinned first, then newest first. */
+    public List<Post> getNotes(int uid) {
+        String query = "SELECT " + COLUMNS + " FROM post WHERE uid = ? "
+                + "ORDER BY pinned DESC, created_at DESC";
 
-        try {
-            // SQL query to fetch posts for the given user ID
-            String query = "SELECT * FROM post WHERE uid = ? ORDER BY id DESC";
-            PreparedStatement ps = conn.prepareStatement(query);
-            ps.setInt(1, id);
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
 
-            ResultSet rs = ps.executeQuery();
+            ps.setInt(1, uid);
+            return mapAll(ps);
 
-            // Loop through each result and create a new Post object
-            while (rs.next()) {
-                Post po = new Post(); // Create a new Post object
-                po.setId(rs.getInt("id")); // Assuming the first column is 'id'
-                po.setTitle(rs.getString("title"));
-                po.setContent(rs.getString("content"));
-                po.setPdate(rs.getTimestamp("date")); // Assuming column name is 'date'
-
-                // Add the post to the list
-                list.add(po);
-            }
-        } catch (Exception e) {
-            e.printStackTrace(); // Log any exceptions
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
         }
-
-        return list; // Return the list of posts
     }
-    
-    // Method to retrieve a single post by its ID
-    public Post getDataById(int noteId) {
-        Post p = null; // Initialize Post object to null
-        
-        try {
-            // SQL query to fetch a post by its ID
-            String qu = "SELECT * FROM post WHERE id = ?";
-            PreparedStatement ps = conn.prepareStatement(qu);
+
+    /**
+     * Returns the user's notes whose title or content matches {@code term}.
+     *
+     * <p>The term is bound as a parameter and the wildcards are added around the
+     * bound value, so a term containing SQL syntax is still just text.
+     */
+    public List<Post> searchNotes(int uid, String term) {
+        String query = "SELECT " + COLUMNS + " FROM post "
+                + "WHERE uid = ? AND (title LIKE ? ESCAPE '!' OR content LIKE ? ESCAPE '!') "
+                + "ORDER BY pinned DESC, created_at DESC";
+
+        // Escape LIKE's own wildcards so a literal % or _ searches for itself.
+        String pattern = "%" + term.replace("!", "!!")
+                                   .replace("%", "!%")
+                                   .replace("_", "!_") + "%";
+
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
+            ps.setInt(1, uid);
+            ps.setString(2, pattern);
+            ps.setString(3, pattern);
+            return mapAll(ps);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Returns a single note, but only if {@code uid} owns it.
+     *
+     * @return the note, or {@code null} when it does not exist or belongs to
+     *         someone else - the caller cannot tell those apart, which avoids
+     *         confirming that another user's note id exists
+     */
+    public Post getNoteById(int noteId, int uid) {
+        String query = "SELECT " + COLUMNS + " FROM post WHERE id = ? AND uid = ?";
+
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
             ps.setInt(1, noteId);
+            ps.setInt(2, uid);
 
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                p = new Post(); // Create a new Post object
-                p.setId(rs.getInt(1)); // Set the ID
-                p.setTitle(rs.getString(2)); // Set the title
-                p.setContent(rs.getString(3)); // Set the content
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? map(rs) : null;
             }
-        } catch (Exception e) {
-            e.printStackTrace(); // Log any exceptions
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
         }
-        return p; // Return the Post object
     }
-    
-    // Method to update an existing post
-    public boolean PostUpdate(int nid, String ti, String co) {
-        boolean f = false; // Flag to indicate success
-        try {
-            // SQL query to update a post
-            String qu = "UPDATE post SET title = ?, content = ? WHERE id = ?";
-            PreparedStatement ps = conn.prepareStatement(qu);
-            ps.setString(1, ti);
-            ps.setString(2, co);
-            ps.setInt(3, nid);
-            int i = ps.executeUpdate(); // Execute update query
 
-            if (i == 1) {
-                f = true; // Post updated successfully
-            }
-        } catch (Exception e) {
-            e.printStackTrace(); // Log any exceptions
+    /** Updates a note the caller owns. Returns false if they do not own it. */
+    public boolean updateNote(int noteId, int uid, String title, String content) {
+        String query = "UPDATE post SET title = ?, content = ? WHERE id = ? AND uid = ?";
+
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
+            ps.setString(1, title);
+            ps.setString(2, content);
+            ps.setInt(3, noteId);
+            ps.setInt(4, uid);
+
+            return ps.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
-        return f; // Return the result of the operation
     }
-    
-    // Method to delete a post by its ID
-    public boolean DeleteNotes(int nid) {
-        boolean f = false; // Flag to indicate success
 
-        try {
-            // SQL query to delete a post
-            String qu = "DELETE FROM post WHERE id = ?";
-            PreparedStatement ps = conn.prepareStatement(qu);
-            ps.setInt(1, nid);
-            int x = ps.executeUpdate(); // Execute delete query
-            if (x == 1) {
-                f = true; // Post deleted successfully
-            }
-        } catch (Exception e) {
-            e.printStackTrace(); // Log any exceptions
+    /** Deletes a note the caller owns. Returns false if they do not own it. */
+    public boolean deleteNote(int noteId, int uid) {
+        String query = "DELETE FROM post WHERE id = ? AND uid = ?";
+
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
+            ps.setInt(1, noteId);
+            ps.setInt(2, uid);
+
+            return ps.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
-        
-        return f; // Return the result of the operation
+    }
+
+    /** Flips the pinned flag on a note the caller owns. */
+    public boolean togglePin(int noteId, int uid) {
+        String query = "UPDATE post SET pinned = NOT pinned WHERE id = ? AND uid = ?";
+
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
+            ps.setInt(1, noteId);
+            ps.setInt(2, uid);
+
+            return ps.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /** Counts the user's notes, for the dashboard. */
+    public int countNotes(int uid) {
+        return count("SELECT COUNT(*) FROM post WHERE uid = ?", uid);
+    }
+
+    /** Counts the user's pinned notes, for the dashboard. */
+    public int countPinned(int uid) {
+        return count("SELECT COUNT(*) FROM post WHERE uid = ? AND pinned = TRUE", uid);
+    }
+
+    private int count(String query, int uid) {
+        try (Connection conn = DBConnect.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query)) {
+
+            ps.setInt(1, uid);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    private List<Post> mapAll(PreparedStatement ps) throws SQLException {
+        List<Post> notes = new ArrayList<>();
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                notes.add(map(rs));
+            }
+        }
+        return notes;
+    }
+
+    private Post map(ResultSet rs) throws SQLException {
+        Post post = new Post();
+        post.setId(rs.getInt("id"));
+        post.setTitle(rs.getString("title"));
+        post.setContent(rs.getString("content"));
+        post.setPinned(rs.getBoolean("pinned"));
+        post.setUid(rs.getInt("uid"));
+        post.setCreatedAt(rs.getTimestamp("created_at"));
+        post.setUpdatedAt(rs.getTimestamp("updated_at"));
+        return post;
     }
 }

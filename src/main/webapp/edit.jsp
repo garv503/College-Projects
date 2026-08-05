@@ -1,72 +1,95 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8" %>
-<%@ page import="com.DAO.PostDAO" %> <!-- Importing PostDAO class for database operations -->
-<%@ page import="com.Db.DBConnect" %> <!-- Importing DBConnect class for database connection -->
-<%@ page import="com.User.Post" %> <!-- Importing Post class for note data representation -->
+<%--
+    Edit form.
+
+    The note is loaded scoped to the signed-in user. Previously it was fetched
+    by id alone, so changing note_id in the URL displayed another user's note.
+    A note that is missing or not owned by the caller now redirects instead of
+    rendering, which also fixes the null dereference the old page hit.
+--%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="com.util.Csrf" %>
+<%@ page import="com.util.WebUtils" %>
+<%@ page import="com.DAO.PostDAO" %>
+<%@ page import="com.User.Post" %>
+<%@ page import="com.User.UserDetails" %>
+
+<c:set var="csrfToken" value="<%= Csrf.token(request) %>"/>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:set var="activePage" value="notes"/>
+
 <%
-    // Retrieve user details from the session
-    UserDetails user1 = (UserDetails) session.getAttribute("userD");
-    
-    // Check if the user is logged in; if not, redirect to the login page
-    if (user1 == null) {
-        response.sendRedirect("login.jsp"); // Redirect to login page
-        session.setAttribute("Login-error", "Please Login.."); // Set error message in session
+    UserDetails editUser = (UserDetails) session.getAttribute("userD");
+    int editNoteId = WebUtils.intParam(request, "note_id", -1);
+    Post editNote = editNoteId < 1 ? null : new PostDAO().getNoteById(editNoteId, editUser.getId());
+
+    if (editNote == null) {
+        WebUtils.error(request, "That note could not be found.");
+        response.sendRedirect(request.getContextPath() + "/showNotes.jsp");
+        return;
     }
+
+    request.setAttribute("note", editNote);
 %>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Memo Magic</title>
-    
-    <%-- Including external CSS files for styling --%>
-    <%@ include file = "all_component/allcss.jsp" %>
+    <title>Edit note &mdash; E-Notes</title>
+    <%@ include file="all_component/allcss.jsp" %>
 </head>
 <body>
+    <%@ include file="all_component/icons.jsp" %>
+    <%@ include file="all_component/navbar.jsp" %>
 
-    <%
-        // Retrieve note ID from the request parameter
-        Integer noteid = Integer.parseInt(request.getParameter("note_id"));
-        // Create an instance of PostDAO with a database connection
-        PostDAO post = new PostDAO(DBConnect.getconn());
-        // Get the note data by its ID
-        Post p = post.getDataById(noteid);
-    %>
+    <main class="page">
+        <div class="container" style="max-width:800px">
+            <%@ include file="all_component/flash.jsp" %>
 
-    <div class="container-fluid">
-        <%-- Including the navigation bar --%>
-        <%@ include file = "all_component/navbar.jsp" %>
-        <h3 class="text-center">Edit Your Note</h3> <!-- Page heading -->
-        
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <form action="NoteEditServlet" method="post"> <!-- Form submission to NoteEditServlet -->
-                        <input type="hidden" value="<%= noteid %>" name="noteid"> <!-- Hidden input for note ID -->
-                        
-                        <div class="form-group">
-                            <label for="exampleInputEmail1">Enter Title</label> 
-                            <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" name="title" 
-                            required="required" value="<%= p.getTitle() %>"> <!-- Input for note title, pre-filled with current title -->
+            <div class="page-head">
+                <div>
+                    <h1>Edit note</h1>
+                    <p class="sub">Changes are saved to this note only.</p>
+                </div>
+                <a class="btn btn-ghost btn-sm" href="${ctx}/showNotes.jsp">
+                    <svg class="icon"><use href="#i-arrow-left"/></svg> Back to notes
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form action="${ctx}/NoteEditServlet" method="post" novalidate>
+                        <input type="hidden" name="csrfToken" value="${csrfToken}">
+                        <input type="hidden" name="noteid" value="${note.id}">
+
+                        <div class="field">
+                            <label for="title">Title</label>
+                            <input class="input" type="text" id="title" name="title"
+                                   maxlength="200" required
+                                   value="<c:out value='${note.title}'/>">
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="exampleInputEmail1">Content</label> 
-                            <textarea rows="9" cols="" class="form-control" name="content" 
-                            required="required"><%= p.getContent() %></textarea> <!-- Textarea for note content, pre-filled with current content -->
+
+                        <div class="field">
+                            <label for="content">Content</label>
+                            <%-- No whitespace inside the textarea tags: anything there
+                                 becomes part of the note's content. --%>
+                            <textarea class="textarea" id="content" name="content"
+                                      maxlength="20000" required><c:out value="${note.content}"/></textarea>
                         </div>
-                        
-                        <div class="container text-center">
-                            <button type="submit" class="btn btn-primary">Add Notes</button> <!-- Submit button for editing notes -->
+
+                        <div style="display:flex;gap:10px;flex-wrap:wrap">
+                            <button type="submit" class="btn btn-primary">
+                                <svg class="icon"><use href="#i-check"/></svg> Save changes
+                            </button>
+                            <a class="btn btn-outline" href="${ctx}/showNotes.jsp">Cancel</a>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <%-- Including the footer --%>
-    <%@ include file = "all_component/footer.jsp" %>
+    </main>
+
+    <%@ include file="all_component/footer.jsp" %>
 </body>
 </html>

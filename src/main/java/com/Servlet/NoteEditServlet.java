@@ -6,37 +6,52 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import com.DAO.PostDAO;
-import com.Db.DBConnect;
+import com.User.UserDetails;
+import com.util.WebUtils;
 
+/** Updates a note the signed-in user owns. */
 @WebServlet("/NoteEditServlet")
 public class NoteEditServlet extends HttpServlet {
-    
-    // Override doPost method to handle POST requests
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        try {
-            // Retrieve the note ID, title, and content from the request parameters
-            Integer noteid = Integer.parseInt(request.getParameter("noteid")); // Convert note ID to Integer
-            String Title = request.getParameter("title"); // Get title parameter
-            String Content = request.getParameter("content"); // Get content parameter
-            
-            // Create an instance of PostDAO to handle note-related database operations
-            PostDAO dao = new PostDAO(DBConnect.getconn());
-            // Call PostUpdate method to update the note in the database
-            boolean f = dao.PostUpdate(noteid, Title, Content);
-            if(f) {
-                System.out.print("Data Updated Successfully"); // Log success message
-                HttpSession session = request.getSession(); // Create or retrieve the current session
-                session.setAttribute("updateMsg","Notes Updated Successfully"); // Set success message in session
-                response.sendRedirect("showNotes.jsp"); // Redirect to the notes display page
-            } else {
-                System.out.print("Data not updated"); // Log failure message
-            }
-        } catch(Exception e) {
-            e.printStackTrace(); // Print stack trace for any exceptions
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        UserDetails user = WebUtils.currentUser(request);
+        if (user == null) {
+            response.sendRedirect("login.jsp");
+            return;
         }
+
+        int noteId = WebUtils.intParam(request, "noteid", -1);
+        if (noteId < 1) {
+            WebUtils.error(request, "That note could not be found.");
+            response.sendRedirect("showNotes.jsp");
+            return;
+        }
+
+        String title = WebUtils.trimmed(request, "title");
+        String content = WebUtils.trimmed(request, "content");
+
+        String problem = AddNotesServlet.validate(title, content);
+        if (problem != null) {
+            WebUtils.error(request, problem);
+            response.sendRedirect("edit.jsp?note_id=" + noteId);
+            return;
+        }
+
+        // Scoped by owner: editing someone else's note updates no rows and is
+        // reported as not found, rather than succeeding.
+        if (new PostDAO().updateNote(noteId, user.getId(), title, content)) {
+            WebUtils.success(request, "Note updated.");
+        } else {
+            WebUtils.error(request, "That note could not be found.");
+        }
+
+        response.sendRedirect("showNotes.jsp");
     }
 }

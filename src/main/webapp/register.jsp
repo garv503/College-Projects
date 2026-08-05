@@ -1,67 +1,68 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="com.util.Csrf" %>
+<c:set var="csrfToken" value="<%= Csrf.token(request) %>"/>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Memo Magic</title>
-    
-    <%-- Including external CSS files for styling --%>
-    <%@ include file = "all_component/allcss.jsp" %>
+    <title>Create account &mdash; E-Notes</title>
+    <%@ include file="all_component/allcss.jsp" %>
 </head>
 <body>
+    <%@ include file="all_component/icons.jsp" %>
+    <%@ include file="all_component/navbar.jsp" %>
 
-    <%-- Including the navigation bar --%>
-    <%@ include file = "all_component/navbar.jsp" %>
+    <main class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-head">
+                <div class="auth-icon"><svg class="icon"><use href="#i-user-plus"/></svg></div>
+                <h1>Create your account</h1>
+                <p>Start keeping your notes in one place.</p>
+            </div>
 
-    <div class="container-fluid div-clor"> <!-- Full-width container for the registration card -->
-        <div class="row">
-            <div class="col-md-4 offset-md-4"> <!-- Centering the card in the middle of the page -->
-                <div class="card mt-4"> <!-- Card component for the registration form -->
+            <div class="auth-body">
+                <%@ include file="all_component/flash.jsp" %>
 
-                    <div class="card-header text-center bg-custom text-white"> <!-- Header section with styling -->
-                        <i class="fa fa-user-plus fa-3x" aria-hidden="true"></i> <!-- User plus icon for registration -->
-                        <h3>Registration</h3> <!-- Heading for the registration form -->
+                <form action="${ctx}/UserServlet" method="post" novalidate>
+                    <input type="hidden" name="csrfToken" value="${csrfToken}">
+
+                    <div class="field">
+                        <label for="fname">Full name</label>
+                        <input class="input" type="text" id="fname" name="fname"
+                               placeholder="Your name" autocomplete="name"
+                               maxlength="100" required autofocus>
                     </div>
-                    
-                    <%-- Displaying registration failure message if any --%>
-                    <%
-                    if(session.getAttribute("failed-msg") != null) {
-                    %>
-                        <div class="alert alert-danger" role="alert"><%= session.getAttribute("failed-msg") %></div> <!-- Alert for registration failure -->
-                    <%
-                    session.removeAttribute("failed-msg"); // Remove the message after displaying
-                    }
-                    %>
 
-                    <div class="card-body"> <!-- Body of the card containing the form -->
-                        <form action="UserServlet" method="post"> <!-- Form submission to UserServlet -->
-
-                            <div class="form-group">
-                                <label>Enter Full Name</label>
-                                <input type="text" class="form-control" id="exampleInputEmail1"
-                                    aria-describedby="emailHelp" name="fname" required> <!-- Input for full name -->
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Enter Email Id</label>
-                                <input type="email" class="form-control" id="exampleInputEmail1"
-                                    aria-describedby="emailHelp" name="uemail" required> <!-- Input for email -->
-                            </div>
-
-                            <div class="form-group">
-                                <label>Enter Password</label>
-                                <input type="password" class="form-control" id="exampleInputPassword1"
-                                    name="upassword" required> <!-- Input for password -->
-                            </div>
-
-                            <button type="submit" class="btn btn-primary badge-pill btn-block">Register</button> <!-- Submit button for registration -->
-                        </form>
+                    <div class="field">
+                        <label for="uemail">Email address</label>
+                        <input class="input" type="email" id="uemail" name="uemail"
+                               placeholder="you@example.com" autocomplete="email"
+                               maxlength="190" required>
                     </div>
-                </div>
+
+                    <div class="field">
+                        <label for="upassword">Password</label>
+                        <input class="input" type="password" id="upassword" name="upassword"
+                               placeholder="At least 8 characters" autocomplete="new-password"
+                               minlength="8" required>
+                        <p class="field-hint">Use 8 characters or more.</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <svg class="icon"><use href="#i-user-plus"/></svg> Create account
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-foot">
+                Already registered? <a href="${ctx}/login.jsp">Sign in</a>
             </div>
         </div>
-    </div>
-    
+    </main>
+
+    <%@ include file="all_component/footer.jsp" %>
 </body>
 </html>

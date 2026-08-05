@@ -6,42 +6,72 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import com.DAO.UserDAO;
-import com.Db.DBConnect;
 import com.User.UserDetails;
+import com.util.WebUtils;
 
+/** Handles registration. */
 @WebServlet("/UserServlet")
 public class UserServlet extends HttpServlet {
 
-    // Override doPost method to handle POST requests
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Retrieve form parameters from the request
-        String name = request.getParameter("fname"); // Full name
-        String email = request.getParameter("uemail"); // Email address
-        String password = request.getParameter("upassword"); // Password
+    private static final long serialVersionUID = 1L;
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_NAME_LENGTH = 100;
+    private static final int MAX_EMAIL_LENGTH = 190;
 
-        // Create a new UserDetails object and set its properties
-        UserDetails us = new UserDetails();
-        us.setName(name); // Set full name
-        us.setEmail(email); // Set email
-        us.setPassword(password); // Set password
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-        // Create a UserDAO instance for database operations
-        UserDAO dao = new UserDAO(DBConnect.getconn());
-        boolean f = dao.addUser(us); // Attempt to add the user to the database
-        HttpSession session; // Declare session variable
+        String name = WebUtils.trimmed(request, "fname");
+        String email = WebUtils.trimmed(request, "uemail");
+        String password = request.getParameter("upassword");
 
-        // Check if the user registration was successful
-        if (f) {
-            session = request.getSession(); // Create a new session
-            session.setAttribute("reg-success", "Registration Successful.."); // Set success message
-            response.sendRedirect("login.jsp"); // Redirect to login page
-        } else {
-            session = request.getSession(); // Create a new session
-            session.setAttribute("failed-msg", "Something Went Wrong"); // Set error message
-            response.sendRedirect("register.jsp"); // Redirect back to registration page
+        String problem = validate(name, email, password);
+        if (problem != null) {
+            WebUtils.error(request, problem);
+            response.sendRedirect("register.jsp");
+            return;
         }
+
+        UserDetails user = new UserDetails();
+        user.setName(name);
+        user.setEmail(email.toLowerCase());
+        user.setPassword(password);
+
+        UserDAO dao = new UserDAO();
+        try {
+            if (dao.addUser(user)) {
+                WebUtils.success(request, "Account created. Please sign in.");
+                response.sendRedirect("login.jsp");
+            } else {
+                WebUtils.error(request, "Could not create your account. Please try again.");
+                response.sendRedirect("register.jsp");
+            }
+        } catch (UserDAO.EmailAlreadyExistsException e) {
+            WebUtils.error(request, e.getMessage());
+            response.sendRedirect("register.jsp");
+        }
+    }
+
+    /** Returns a message describing the first problem found, or {@code null} when valid. */
+    private String validate(String name, String email, String password) {
+        if (name == null) {
+            return "Please enter your full name.";
+        }
+        if (name.length() > MAX_NAME_LENGTH) {
+            return "Name must be " + MAX_NAME_LENGTH + " characters or fewer.";
+        }
+        if (!WebUtils.looksLikeEmail(email)) {
+            return "Please enter a valid email address.";
+        }
+        if (email.length() > MAX_EMAIL_LENGTH) {
+            return "Email must be " + MAX_EMAIL_LENGTH + " characters or fewer.";
+        }
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            return "Password must be at least " + MIN_PASSWORD_LENGTH + " characters.";
+        }
+        return null;
     }
 }

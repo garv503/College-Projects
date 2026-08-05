@@ -1,83 +1,116 @@
-<%@ page import = "com.User.UserDetails" %> <!-- Importing the UserDetails class for user session handling -->
+<%--
+    Site header.
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-custom navbar-custom">
-  <a class="navbar-brand" href=""><i class="fa fa-book" aria-hidden="true"></i>E Notes</a>
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span> <!-- Button to toggle the navbar on small screens -->
-  </button>
+    The user object comes from the session and is rendered with <c:out>, which
+    escapes it. The old navbar wrote the name and email straight into the page
+    with <%= %>, so a name containing markup was executed as HTML.
 
-  <div class="collapse navbar-collapse" id="navbarSupportedContent"> <!-- Collapsible navbar content -->
-    <ul class="navbar-nav mr-auto"> <!-- Left-aligned navigation links -->
-    
-      <li class="nav-item active"> <!-- Home link -->
-        <a class="nav-link" href="home.jsp"><i class="fa fa-home" aria-hidden="true"></i>Home<span class="sr-only">(current)</span></a>
-      </li>
-      
-      <li class="nav-item"> <!-- Add Notes link -->
-        <a class="nav-link" href="addNotes.jsp"><i class="fa fa-plus" aria-hidden="true"></i>Add Notes</a>
-      </li>
-      
-      <li class="nav-item"> <!-- Show Notes link -->
-        <a class="nav-link" href="showNotes.jsp"><i class="fa fa-address-book-o" aria-hidden="true"></i>Show Notes</a>
-      </li>
-    </ul>
+    Sign-out is a POST form carrying the CSRF token, not a link, so another site
+    cannot sign the user out by pointing an image at the URL.
+--%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-    <% 
-      // Retrieve user details from the session
-      UserDetails user = (UserDetails) session.getAttribute("userD"); 
-      if(user != null) { %> <!-- Check if user is logged in -->
-      
-	    <ul class="navbar-nav"> <!-- User profile dropdown -->
-	      <li class="nav-item dropdown" id="profileDropdownContainer">
-	        <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" aria-haspopup="true" aria-expanded="false">
-	          <i class="fa fa-user" aria-hidden="true"></i> <%= user.getName() %> <!-- Display user name -->
-	        </a>
-	        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown"> <!-- Dropdown menu for user info -->
-	          <a class="dropdown-item" href="#"><strong>User ID:</strong> <%= user.getId() %></a> <!-- User ID -->
-	          <a class="dropdown-item" href="#"><strong>Email:</strong> <%= user.getEmail() %></a> <!-- User email -->
-	        </div>
-	      </li>
-	      <li class="nav-item">
-	        <a href="logoutServlet" class="btn btn-light my-2 my-sm-0"><i class="fa fa-user-plus" aria-hidden="true"></i> Logout</a> <!-- Logout button -->
-	      </li>
-	    </ul>
-    <% } else { %> <!-- If user is not logged in -->
-	    <a href="login.jsp" class="btn btn-light my-2 my-sm-0 mr-2"><i class="fa fa-user" aria-hidden="true"></i> Login</a> <!-- Login button -->
-	    <a href="register.jsp" class="btn btn-light my-2 my-sm-0"><i class="fa fa-user-plus" aria-hidden="true"></i> Register</a> <!-- Register button -->
-    <% } %>
-    
-  </div>
-</nav>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 
-<!-- Custom CSS for dropdown functionality -->
-<style>
-  .dropdown:hover .dropdown-menu { /* Show dropdown menu on hover */
-    display: block;
-  }
+<header class="site-header">
+    <div class="container">
+        <nav class="nav" aria-label="Main">
+            <a class="brand" href="${ctx}/${empty sessionScope.userD ? 'index.jsp' : 'home.jsp'}">
+                <span class="brand-mark"><svg class="icon"><use href="#i-book"/></svg></span>
+                E-Notes
+            </a>
 
-  .dropdown-menu.show { /* Ensure the dropdown menu is displayed when toggled */
-    display: block;
-  }
-</style>
+            <input type="checkbox" id="navToggle" class="nav-toggle">
+            <label for="navToggle" class="nav-toggle-label" aria-label="Toggle navigation">
+                <svg class="icon" style="width:22px;height:22px"><use href="#i-menu"/></svg>
+            </label>
 
-<!-- Custom JS for dropdown behavior -->
+            <c:if test="${not empty sessionScope.userD}">
+                <ul class="nav-links">
+                    <li>
+                        <a class="nav-link ${activePage eq 'home' ? 'is-active' : ''}" href="${ctx}/home.jsp">
+                            <svg class="icon"><use href="#i-home"/></svg> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link ${activePage eq 'add' ? 'is-active' : ''}" href="${ctx}/addNotes.jsp">
+                            <svg class="icon"><use href="#i-plus"/></svg> New note
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link ${activePage eq 'notes' ? 'is-active' : ''}" href="${ctx}/showNotes.jsp">
+                            <svg class="icon"><use href="#i-notes"/></svg> My notes
+                        </a>
+                    </li>
+                </ul>
+            </c:if>
+
+            <div class="nav-actions">
+                <button type="button" class="btn btn-icon" id="themeToggle"
+                        aria-label="Switch between light and dark theme">
+                    <svg class="icon" data-theme-icon="light"><use href="#i-sun"/></svg>
+                    <svg class="icon" data-theme-icon="dark" style="display:none"><use href="#i-moon"/></svg>
+                </button>
+
+                <c:choose>
+                    <c:when test="${not empty sessionScope.userD}">
+                        <span class="user-chip" title="<c:out value='${sessionScope.userD.email}'/>">
+                            <span class="avatar"><c:out value="${sessionScope.userD.initial}"/></span>
+                            <span class="name"><c:out value="${sessionScope.userD.name}"/></span>
+                        </span>
+                        <form action="${ctx}/logoutServlet" method="post">
+                            <input type="hidden" name="csrfToken" value="${csrfToken}">
+                            <button type="submit" class="btn btn-outline btn-sm">
+                                <svg class="icon"><use href="#i-logout"/></svg> Sign out
+                            </button>
+                        </form>
+                    </c:when>
+                    <c:otherwise>
+                        <a class="btn btn-outline btn-sm" href="${ctx}/login.jsp">
+                            <svg class="icon"><use href="#i-user"/></svg> Sign in
+                        </a>
+                        <a class="btn btn-primary btn-sm" href="${ctx}/register.jsp">
+                            <svg class="icon"><use href="#i-user-plus"/></svg> Get started
+                        </a>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </nav>
+    </div>
+</header>
+
 <script>
-  // Ensure dropdown stays open on click
-  document.addEventListener('DOMContentLoaded', function () {
-    const dropdownToggle = document.getElementById('profileDropdown'); // Get the dropdown toggle button
-    const dropdownMenu = dropdownToggle.nextElementSibling; // Get the associated dropdown menu
-    const dropdownContainer = document.getElementById('profileDropdownContainer'); // Get the dropdown container
-    
-    dropdownToggle.addEventListener('click', function (e) { // Add click event listener
-      e.preventDefault(); // Prevent default anchor behavior
-      dropdownMenu.classList.toggle('show'); // Toggle visibility of the dropdown menu
-    });
+    (function () {
+        var toggle = document.getElementById('themeToggle');
+        if (!toggle) { return; }
 
-    // Close dropdown if clicked outside
-    document.addEventListener('click', function (e) { // Add click event listener to the document
-      if (!dropdownContainer.contains(e.target)) { // Check if click is outside the dropdown
-        dropdownMenu.classList.remove('show'); // Hide dropdown menu
-      }
-    });
-  });
+        var root = document.documentElement;
+        var sun = toggle.querySelector('[data-theme-icon="light"]');
+        var moon = toggle.querySelector('[data-theme-icon="dark"]');
+
+        function currentTheme() {
+            return root.getAttribute('data-theme')
+                || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        }
+
+        // Offer the theme the click will switch *to*.
+        function paintIcon() {
+            var dark = currentTheme() === 'dark';
+            sun.style.display = dark ? '' : 'none';
+            moon.style.display = dark ? 'none' : '';
+        }
+
+        toggle.addEventListener('click', function () {
+            var next = currentTheme() === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            try {
+                localStorage.setItem('enotes-theme', next);
+            } catch (e) {
+                /* Not persistable; the choice still applies to this page view. */
+            }
+            paintIcon();
+        });
+
+        paintIcon();
+    })();
 </script>

@@ -8,39 +8,55 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.Db.DBConnect;
-import com.User.UserDetails;
 import com.DAO.UserDAO;
+import com.User.UserDetails;
+import com.util.WebUtils;
 
+/** Handles sign-in. */
 @WebServlet("/loginServlet")
 public class loginServlet extends HttpServlet {
 
-    // Override doPost method to handle POST requests
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Retrieve email and password parameters from the request
-        String email = request.getParameter("uemail");
+
+        String email = WebUtils.trimmed(request, "uemail");
         String password = request.getParameter("upassword");
-        
-        // Create a UserDetails object to store the user's credentials
-        UserDetails us = new UserDetails();
-        us.setEmail(email); // Set the email
-        us.setPassword(password); // Set the password
-        
-        // Create an instance of UserDAO to handle user-related database operations
-        UserDAO dao = new UserDAO(DBConnect.getconn());
-        // Attempt to log in the user using the provided credentials
-        UserDetails user = dao.loginUser(us);
-        
-        // Check if the user object is not null (i.e., login successful)
-        if(user != null) {
-            HttpSession session = request.getSession(); // Create or retrieve the current session
-            session.setAttribute("userD", user); // Store the user details in the session
-            response.sendRedirect("home.jsp"); // Redirect to the home page upon successful login
-        } else {
-            HttpSession session = request.getSession(); // Create or retrieve the current session
-            session.setAttribute("login-failed", "Invalid Username and Password"); // Set error message
-            response.sendRedirect("login.jsp"); // Redirect back to the login page
+
+        if (email == null || password == null || password.isEmpty()) {
+            WebUtils.error(request, "Please enter both your email and password.");
+            response.sendRedirect("login.jsp");
+            return;
         }
+
+        UserDetails credentials = new UserDetails();
+        credentials.setEmail(email.toLowerCase());
+        credentials.setPassword(password);
+
+        UserDetails user = new UserDAO().loginUser(credentials);
+
+        if (user == null) {
+            // One message for both "no such email" and "wrong password", so the
+            // response cannot be used to discover which emails are registered.
+            WebUtils.error(request, "Invalid email or password.");
+            response.sendRedirect("login.jsp");
+            return;
+        }
+
+        // Issue a new session id on sign-in, so a session id planted before
+        // login cannot be reused afterwards (session fixation).
+        HttpSession oldSession = request.getSession(false);
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+
+        HttpSession session = request.getSession(true);
+        session.setAttribute("userD", user);
+        session.setMaxInactiveInterval(60 * 60);
+
+        WebUtils.success(request, "Welcome back, " + user.getName() + ".");
+        response.sendRedirect("home.jsp");
     }
 }

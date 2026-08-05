@@ -2,60 +2,79 @@ package com.User;
 
 import java.sql.Timestamp;
 
+/** A single note belonging to one user. */
 public class Post {
-    private int id; // Unique identifier for the post
-    private String title; // Title of the post
-    private String content; // Content of the post
-    private Timestamp pdate; // Timestamp for when the post was published
-    private String user; // User associated with the post
+    private int id;
+    private String title;
+    private String content;
+    private boolean pinned;
+    private int uid;
+    private Timestamp createdAt;
+    private Timestamp updatedAt;
 
-    // Getter method for post ID
     public int getId() {
-        return id; // Return the unique identifier of the post
+        return id;
     }
 
-    // Setter method for post ID
     public void setId(int id) {
-        this.id = id; // Set the unique identifier of the post
+        this.id = id;
     }
 
-    // Getter method for post title
     public String getTitle() {
-        return title; // Return the title of the post
+        return title;
     }
 
-    // Setter method for post title
     public void setTitle(String title) {
-        this.title = title; // Set the title of the post
+        this.title = title;
     }
 
-    // Getter method for post content
     public String getContent() {
-        return content; // Return the content of the post
+        return content;
     }
 
-    // Setter method for post content
     public void setContent(String content) {
-        this.content = content; // Set the content of the post
+        this.content = content;
     }
 
-    // Getter method for post published date
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public int getUid() {
+        return uid;
+    }
+
+    public void setUid(int uid) {
+        this.uid = uid;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    /** True when the note has been changed since it was first created. */
+    public boolean isEdited() {
+        return createdAt != null && updatedAt != null && updatedAt.after(createdAt);
+    }
+
+    /** Kept so existing pages that referenced the old published-date getter still work. */
     public Timestamp getPdate() {
-        return pdate; // Return the published date of the post
-    }
-
-    // Setter method for post published date
-    public void setPdate(Timestamp pdate) {
-        this.pdate = pdate; // Set the published date of the post
-    }
-
-    // Getter method for user associated with the post
-    public String getUser() {
-        return user; // Return the user associated with the post
-    }
-
-    // Setter method for user associated with the post
-    public void setUser(String user) {
-        this.user = user; // Set the user associated with the post
+        return createdAt;
     }
 }

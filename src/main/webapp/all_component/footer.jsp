@@ -1,10 +1,9 @@
-<div class="container-fluid bg-dark mt-5">
-	<p class = "text-center text-white">
-		Note: Any Errors Occur then contact +91xxxxxxxxx. Design and Develop by Garv Bhargava
-	</p>
-	
-	<p class = "text-center text-white">
-		All Rights Reserved @Garv Bhargava-2022-25
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="java.time.Year" %>
 
-
-</div>
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <span>E-Notes &mdash; designed and developed by Garv Bhargava</span>
+        <span>&copy; <%= Year.now().getValue() %> &middot; All rights reserved</span>
+    </div>
+</footer>

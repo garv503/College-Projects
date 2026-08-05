@@ -1,63 +1,78 @@
 package com.User;
 
-public class UserDetails {
-    private int id; // User ID
-    private String full_name; // User's full name
-    private String email; // User's email address
-    private String password; // User's password
+import java.sql.Timestamp;
 
-    // Default constructor
+/**
+ * An application user.
+ *
+ * <p>{@code password} holds a hash, never a raw password, and is cleared before
+ * the object is placed in the session so the credential is not kept in memory
+ * for the life of the session.
+ */
+public class UserDetails {
+    private int id;
+    private String full_name;
+    private String email;
+    private String password;
+    private Timestamp createdAt;
+
     public UserDetails() {
         super();
-        // No-argument constructor for creating empty UserDetails objects
     }
 
-    // Parameterized constructor to initialize UserDetails
     public UserDetails(int id, String full_name, String email, String password) {
         super();
-        this.id = id; // Set user ID
-        this.full_name = full_name; // Set user's full name
-        this.email = email; // Set user's email address
-        this.password = password; // Set user's password
+        this.id = id;
+        this.full_name = full_name;
+        this.email = email;
+        this.password = password;
     }
 
-    // Getter method for ID
     public int getId() {
-        return id; // Return user ID
+        return id;
     }
 
-    // Setter method for ID
     public void setId(int id) {
-        this.id = id; // Set user ID
+        this.id = id;
     }
 
-    // Getter method for full name
     public String getName() {
-        return full_name; // Return user's full name
+        return full_name;
     }
 
-    // Setter method for full name
     public void setName(String name) {
-        this.full_name = name; // Set user's full name
+        this.full_name = name;
     }
 
-    // Getter method for email
     public String getEmail() {
-        return email; // Return user's email address
+        return email;
     }
 
-    // Setter method for email
     public void setEmail(String email) {
-        this.email = email; // Set user's email address
+        this.email = email;
     }
 
-    // Getter method for password
     public String getPassword() {
-        return password; // Return user's password
+        return password;
     }
 
-    // Setter method for password
     public void setPassword(String password) {
-        this.password = password; // Set user's password
+        this.password = password;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    /** First letter of the user's name, for the avatar badge in the navbar. */
+    public String getInitial() {
+        if (full_name == null || full_name.trim().isEmpty()) {
+            return "?";
+        }
+        return full_name.trim().substring(0, 1).toUpperCase();
     }
 }

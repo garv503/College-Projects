@@ -8,69 +8,61 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.DAO.PostDAO;
-import com.Db.DBConnect;
+import com.User.UserDetails;
+import com.util.WebUtils;
 
+/** Creates a note for the signed-in user. */
 @WebServlet("/AddNotesServlet")
 public class AddNotesServlet extends HttpServlet {
 
-    // Override doPost method to handle POST requests
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        
-        // Initialize flags for data validity and an error message
-        boolean dataValid = true;
-        String errorMessage = null;
-        int uid = 0; // User ID initialization
+    private static final long serialVersionUID = 1L;
+    static final int MAX_TITLE_LENGTH = 200;
+    static final int MAX_CONTENT_LENGTH = 20_000;
 
-        // Validate and parse 'uid' parameter from the request
-        String uidStr = request.getParameter("uid");
-        if (uidStr != null && !uidStr.isEmpty()) {
-            try {
-                // Attempt to parse the UID as an integer
-                uid = Integer.parseInt(uidStr);
-            } catch (NumberFormatException e) {
-                dataValid = false; // Set flag to false if parsing fails
-                errorMessage = "Invalid user ID format."; // Set error message
-                e.printStackTrace(); // Log the error for debugging
-            }
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // The author is the signed-in user. It used to come from a hidden form
+        // field, so anyone could post a note into another account by editing it.
+        UserDetails user = WebUtils.currentUser(request);
+        if (user == null) {
+            response.sendRedirect("login.jsp");
+            return;
+        }
+
+        String title = WebUtils.trimmed(request, "title");
+        String content = WebUtils.trimmed(request, "content");
+
+        String problem = validate(title, content);
+        if (problem != null) {
+            WebUtils.error(request, problem);
+            response.sendRedirect("addNotes.jsp");
+            return;
+        }
+
+        if (new PostDAO().addNote(title, content, user.getId())) {
+            WebUtils.success(request, "Note added.");
+            response.sendRedirect("showNotes.jsp");
         } else {
-            dataValid = false; // Set flag to false if UID is missing
-            errorMessage = "User ID is required."; // Set error message
+            WebUtils.error(request, "Could not save your note. Please try again.");
+            response.sendRedirect("addNotes.jsp");
         }
+    }
 
-        // Retrieve 'title' and 'content' parameters from the request
-        String title = request.getParameter("title");
-        String content = request.getParameter("content");
-
-        // Validate title
-        if (title == null || title.trim().isEmpty()) {
-            dataValid = false; // Set flag to false if title is empty
-            errorMessage = "Title cannot be empty."; // Set error message
+    static String validate(String title, String content) {
+        if (title == null) {
+            return "Please enter a title.";
         }
-
-        // Validate content
-        if (content == null || content.trim().isEmpty()) {
-            dataValid = false; // Set flag to false if content is empty
-            errorMessage = "Content cannot be empty."; // Set error message
+        if (title.length() > MAX_TITLE_LENGTH) {
+            return "Title must be " + MAX_TITLE_LENGTH + " characters or fewer.";
         }
-
-        // If validation passed, proceed with database insertion
-        if (dataValid) {
-            // Get a connection from the database
-            PostDAO dao = new PostDAO(DBConnect.getconn());
-            boolean f = dao.AddNotes(title, content, uid); // Attempt to add notes
-
-            // Check if data insertion was successful
-            if (f) {
-                System.out.println("Data inserted successfully"); // Log success
-                response.sendRedirect("showNotes.jsp"); // Redirect to notes page
-            } else {
-                System.out.println("Data not inserted"); // Log failure
-                // Optionally handle insertion failure here
-            }
-        } else {
-            // Handle invalid data and send error response
-            request.setAttribute("errorMessage", errorMessage); // Set error message for the request
-            request.getRequestDispatcher("errorPage.jsp").forward(request, response); // Forward to error page
+        if (content == null) {
+            return "Please enter some content.";
         }
+        if (content.length() > MAX_CONTENT_LENGTH) {
+            return "Content must be " + MAX_CONTENT_LENGTH + " characters or fewer.";
+        }
+        return null;
     }
 }

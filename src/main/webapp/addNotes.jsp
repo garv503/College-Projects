@@ -1,66 +1,74 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8" %>
+<%--
+    New note form.
 
-<%
-    // Retrieve the user details from the session
-    UserDetails user1 = (UserDetails) session.getAttribute("userD");
-    
-    // Check if the user is logged in; if not, redirect to login page
-    if (user1 == null) {
-        response.sendRedirect("login.jsp"); // Redirect to login page
-        session.setAttribute("Login-error", "Please Login.."); // Set login error message in session
-    }
-%>
+    There is no hidden author field any more: AddNotesServlet takes the owner
+    from the session, so the note cannot be filed under another account.
+--%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="com.util.Csrf" %>
+
+<c:set var="csrfToken" value="<%= Csrf.token(request) %>"/>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:set var="activePage" value="add"/>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Memo Magic</title>
-    
-    <%-- Including external CSS files for styling --%>
-    <%@ include file = "all_component/allcss.jsp" %>
+    <title>New note &mdash; E-Notes</title>
+    <%@ include file="all_component/allcss.jsp" %>
 </head>
 <body>
-    <div class="container-fluid">
-        <%-- Including the navigation bar --%>
-        <%@ include file = "all_component/navbar.jsp" %>
-        
-        <h3 class="text-center">Add Your Notes Here</h3> <!-- Page heading -->
-        
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <form action="AddNotesServlet" method="post"> <!-- Form submission to AddNotesServlet -->
-                    
-                        <div class="form-group">
-                            <% 
-                            // Retrieve user details again to get the user ID for the hidden field
-                            UserDetails us = (UserDetails) session.getAttribute("userD");
-                            if (us != null) {
-                            %>
-                            <input type="hidden" value="<%= us.getId() %>" name="uid"> <!-- Hidden input for user ID -->
-                            <% } %>
-                            
-                            <label for="exampleInputEmail1">Enter Title</label> 
-                            <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" name="title" required="required"> <!-- Input for note title -->
+    <%@ include file="all_component/icons.jsp" %>
+    <%@ include file="all_component/navbar.jsp" %>
+
+    <main class="page">
+        <div class="container" style="max-width:800px">
+            <%@ include file="all_component/flash.jsp" %>
+
+            <div class="page-head">
+                <div>
+                    <h1>New note</h1>
+                    <p class="sub">Give it a title and write whatever you need.</p>
+                </div>
+                <a class="btn btn-ghost btn-sm" href="${ctx}/showNotes.jsp">
+                    <svg class="icon"><use href="#i-arrow-left"/></svg> Back to notes
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form action="${ctx}/AddNotesServlet" method="post" novalidate>
+                        <input type="hidden" name="csrfToken" value="${csrfToken}">
+
+                        <div class="field">
+                            <label for="title">Title</label>
+                            <input class="input" type="text" id="title" name="title"
+                                   placeholder="What is this note about?"
+                                   maxlength="200" required autofocus>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="exampleInputEmail1">Add Content</label> 
-                            <textarea rows="9" cols="" class="form-control" name="content" required="required"></textarea> <!-- Textarea for note content -->
+
+                        <div class="field">
+                            <label for="content">Content</label>
+                            <textarea class="textarea" id="content" name="content"
+                                      placeholder="Start writing..."
+                                      maxlength="20000" required></textarea>
+                            <p class="field-hint">Line breaks are preserved.</p>
                         </div>
-                        
-                        <div class="container text-center">
-                            <button type="submit" class="btn btn-primary">Add Notes</button> <!-- Submit button for adding notes -->
+
+                        <div style="display:flex;gap:10px;flex-wrap:wrap">
+                            <button type="submit" class="btn btn-primary">
+                                <svg class="icon"><use href="#i-check"/></svg> Save note
+                            </button>
+                            <a class="btn btn-outline" href="${ctx}/showNotes.jsp">Cancel</a>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <%-- Including the footer --%>
-    <%@ include file = "all_component/footer.jsp" %>
+    </main>
+
+    <%@ include file="all_component/footer.jsp" %>
 </body>
 </html>
