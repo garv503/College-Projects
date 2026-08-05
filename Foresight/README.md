@@ -88,6 +88,10 @@ git clone https://github.com/garv503/College-Projects.git
 cd College-Projects
 git checkout Student-Analytics
 
+# The application lives in Foresight/; Documentation/ sits beside it.
+# Every command below is run from inside Foresight/.
+cd Foresight
+
 cp .env.example .env      # optional; sensible defaults are built in
 docker compose up --build
 ```
@@ -115,6 +119,12 @@ survives a restart.
 **Requires:** Python 3.11+ and MySQL 8.0+
 
 ```bash
+# 0. Get the code. Every command below runs from inside Foresight/.
+git clone https://github.com/garv503/College-Projects.git
+cd College-Projects
+git checkout Student-Analytics
+cd Foresight
+
 # 1. Configuration
 cp .env.example .env
 #    then edit .env and set DB_PASSWORD to your MySQL root password
