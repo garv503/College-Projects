@@ -1,14 +1,15 @@
-# Local database configuration (contains credentials)
-src/main/resources/db.properties
+# Dependencies
+node_modules/
 
-# Local IDE and build output
-.tools/
-build/
-target/
-lib/
-.classpath
-.project
-.settings/
+# Build output
+frontend/dist/
+
+# Local configuration (database and session credentials)
+server/.env
+
+# Logs
+*.log
+npm-debug.log*
 
 # Operating-system files
 .DS_Store

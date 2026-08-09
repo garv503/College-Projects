@@ -41,7 +41,7 @@ export default function Landing() {
           </h1>
 
           <p className="lead">
-            Capture ideas, pin what matters, and find any note in seconds. E-Notes keeps your
+            Capture ideas, pin what matters, and find any note in seconds. Inkwell keeps your
             writing organised and to yourself.
           </p>
 

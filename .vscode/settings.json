@@ -1,3 +1,8 @@
 {
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "files.eol": "\n",
+  "editor.formatOnSave": false,
+  "search.exclude": {
+    "**/node_modules": true,
+    "frontend/dist": true
+  }
 }

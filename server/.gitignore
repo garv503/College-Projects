@@ -1,0 +1,4 @@
+node_modules/
+
+# Local database and session credentials.
+.env

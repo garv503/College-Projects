@@ -27,7 +27,7 @@ export default function Navbar() {
             <span className="brand-mark">
               <Icon name="book" />
             </span>
-            E-Notes
+            Inkwell
           </Link>
 
           <button
@@ -57,6 +57,15 @@ export default function Navbar() {
                   <Icon name="notes" /> My notes
                 </NavLink>
               </li>
+              {/* Shown to administrators only. The route and the API are both
+                  guarded regardless of whether this link is rendered. */}
+              {user.role === 'ADMIN' && (
+                <li>
+                  <NavLink className={navLinkClass} to="/admin" onClick={close}>
+                    <Icon name="shield" /> Admin
+                  </NavLink>
+                </li>
+              )}
             </ul>
           )}
 

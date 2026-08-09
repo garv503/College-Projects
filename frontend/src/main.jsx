@@ -7,9 +7,7 @@ import './styles.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* The app is served from Tomcat under /enotes, so the router's paths are
-        relative to that context path rather than the domain root. */}
-    <BrowserRouter basename="/enotes">
+    <BrowserRouter>
       <AuthProvider>
         <App />
       </AuthProvider>

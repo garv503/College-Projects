@@ -1,14 +1,14 @@
 /**
- * Thin wrapper over fetch for the E-Notes API.
+ * Thin wrapper over fetch for the Inkwell API.
  *
  * Two things every call needs and none of the callers should have to remember:
  *
- *  - `credentials: 'same-origin'`, so the Tomcat session cookie is sent. Without
- *    it every request looks signed-out.
+ *  - `credentials: 'same-origin'`, so the session cookie is sent. Without it
+ *    every request looks signed-out.
  *  - the CSRF token header on writes. The server rejects any non-GET without it.
  */
 
-const BASE = '/enotes/api';
+const BASE = '/api';
 
 let csrfToken = null;
 
@@ -27,7 +27,15 @@ async function request(path, { method = 'GET', body } = {}) {
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }
-  if (method !== 'GET' && csrfToken) {
+
+  if (method !== 'GET') {
+    // A page reached directly by URL (the emailed setup link, for instance)
+    // may write before anything has fetched a token. Fetch one rather than
+    // letting the request fail the CSRF check. The session probe is a GET, so
+    // this cannot recurse.
+    if (!csrfToken) {
+      await getSession();
+    }
     headers['X-CSRF-Token'] = csrfToken;
   }
 
@@ -58,6 +66,30 @@ export async function getSession() {
   const data = await request('/auth/session');
   csrfToken = data.csrfToken;
   return data;
+}
+
+/** Exchanges a Google ID token for a session. */
+export async function loginWithGoogle(credential) {
+  const data = await request('/auth/google', {
+    method: 'POST',
+    body: { credential },
+  });
+  // Signing in starts a new session, so the old token is dead.
+  csrfToken = data.csrfToken;
+  return data;
+}
+
+/** Checks a setup link before showing the form. */
+export async function checkSetupToken(token) {
+  return request(`/auth/setup-token/${encodeURIComponent(token)}`);
+}
+
+/** Consumes a setup link and sets the account's password. */
+export async function setupPassword(token, password) {
+  return request('/auth/setup-password', {
+    method: 'POST',
+    body: { token, password },
+  });
 }
 
 export async function login(email, password) {
@@ -113,4 +145,25 @@ export async function togglePin(id) {
 
 export async function getStats() {
   return request('/stats');
+}
+
+/* --------------------------------------------------------------- admin only */
+/* The server enforces the ADMIN role on all of these; hiding the UI is only a
+   convenience, never the check that matters. */
+
+export async function listUsers() {
+  const data = await request('/admin/users');
+  return data.users;
+}
+
+export async function getAdminStats() {
+  return request('/admin/stats');
+}
+
+export async function setUserRole(id, role) {
+  return request(`/admin/users/${id}/role`, { method: 'PATCH', body: { role } });
+}
+
+export async function deleteUser(id) {
+  return request(`/admin/users/${id}`, { method: 'DELETE' });
 }

@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Alert from '../components/Alert';
+import GoogleButton from '../components/GoogleButton';
 import Icon from '../components/Icon';
 import PasswordInput from '../components/PasswordInput';
 import * as api from '../api';
+import { useAuth } from '../auth';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { signInWithGoogle, google } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +36,21 @@ export default function Register() {
       setBusy(false);
     }
   }
+
+  // Google signups are created and signed in server-side in one step, so this
+  // goes straight to the dashboard; the setup email follows separately.
+  const handleGoogle = useCallback(
+    async (credential) => {
+      setError(null);
+      try {
+        await signInWithGoogle(credential);
+        navigate('/dashboard', { replace: true });
+      } catch (err) {
+        setError(err.message);
+      }
+    },
+    [signInWithGoogle, navigate],
+  );
 
   return (
     <main className="auth-shell">
@@ -100,6 +118,12 @@ export default function Register() {
               <Icon name="user-plus" /> {busy ? 'Creating account...' : 'Create account'}
             </button>
           </form>
+
+          <GoogleButton
+            clientId={google.clientId}
+            onCredential={handleGoogle}
+            onError={setError}
+          />
         </div>
 
         <div className="auth-foot">

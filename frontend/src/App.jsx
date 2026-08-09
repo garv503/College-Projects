@@ -7,6 +7,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Notes from './pages/Notes';
 import NoteEditor from './pages/NoteEditor';
+import Admin from './pages/Admin';
+import AccountSetup from './pages/AccountSetup';
 import NotFound from './pages/NotFound';
 import { useAuth } from './auth';
 
@@ -45,6 +47,22 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/**
+ * Gate for the admin console.
+ *
+ * Again only a convenience: /api/admin/* is behind requireAdmin on the server,
+ * so a non-admin who reached this route anyway would get 403s and see nothing.
+ */
+function RequireAdmin({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
+
+  return children;
+}
+
 /** Keeps signed-in users off the sign-in and registration pages. */
 function RedirectIfSignedIn({ children }) {
   const { user, loading } = useAuth();
@@ -78,6 +96,10 @@ export default function App() {
           }
         />
 
+        {/* Reached from the emailed link; deliberately not behind a guard,
+            since the whole point is that the recipient may be signed out. */}
+        <Route path="/account-setup" element={<AccountSetup />} />
+
         <Route
           path="/dashboard"
           element={
@@ -108,6 +130,15 @@ export default function App() {
             <RequireAuth>
               <NoteEditor mode="edit" />
             </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Admin />
+            </RequireAdmin>
           }
         />
 

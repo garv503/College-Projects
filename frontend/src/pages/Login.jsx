@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Alert from '../components/Alert';
+import GoogleButton from '../components/GoogleButton';
 import Icon from '../components/Icon';
 import PasswordInput from '../components/PasswordInput';
 import { useAuth } from '../auth';
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle, google } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,6 +35,19 @@ export default function Login() {
       setBusy(false);
     }
   }
+
+  const handleGoogle = useCallback(
+    async (credential) => {
+      setError(null);
+      try {
+        await signInWithGoogle(credential);
+        navigate(redirectTo, { replace: true });
+      } catch (err) {
+        setError(err.message);
+      }
+    },
+    [signInWithGoogle, navigate, redirectTo],
+  );
 
   return (
     <main className="auth-shell">
@@ -83,6 +97,12 @@ export default function Login() {
               <Icon name="user" /> {busy ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <GoogleButton
+            clientId={google.clientId}
+            onCredential={handleGoogle}
+            onError={setError}
+          />
         </div>
 
         <div className="auth-foot">

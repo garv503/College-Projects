@@ -1,5 +1,5 @@
 /* ==========================================================================
-   E-Notes design system
+   Inkwell design system
 
    Self-contained: no Bootstrap, no icon font, no CDN. The app previously
    pulled Bootstrap 4, jQuery, Popper and Font Awesome from three external
@@ -563,6 +563,61 @@ a:hover { text-decoration: underline; }
 .input-group .input { flex: 1; }
 
 /* --------------------------------------------------------------------------
+   Google sign-in
+   -------------------------------------------------------------------------- */
+.google-signin {
+    margin-top: 22px;
+}
+
+/* Rule either side of a centred label. */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    color: var(--text-faint);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* Google renders its own button into this slot; only centre it. */
+.google-button-slot {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.google-placeholder .btn {
+    /* Google's own button is white; match it so enabling the real one is not
+       a visual jump. */
+    background: #fff;
+    color: #3c4043;
+    border-color: #dadce0;
+}
+
+.google-placeholder .field-hint {
+    margin-top: 8px;
+}
+
+.google-placeholder code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
    Alerts
    -------------------------------------------------------------------------- */
 .alert {
@@ -878,6 +933,87 @@ a:hover { text-decoration: underline; }
     max-width: 46ch;
     margin: 0 auto 22px;
     color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Admin table
+   -------------------------------------------------------------------------- */
+/* Wide content scrolls inside its own box, so the page body never scrolls
+   sideways on a narrow screen. */
+.table-wrap {
+    overflow-x: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    font-size: 0.93rem;
+}
+
+.table th,
+.table td {
+    padding: 14px 18px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.table thead th {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    background: var(--bg-sunken);
+    white-space: nowrap;
+}
+
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--surface-hover); }
+
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table .actions-col { text-align: right; }
+
+.cell-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cell-name {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.cell-sub {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+/* A disabled control is one the server would reject; make that legible
+   rather than leaving it looking clickable. */
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+    background: transparent;
+    box-shadow: none;
+    transform: none;
 }
 
 /* --------------------------------------------------------------------------

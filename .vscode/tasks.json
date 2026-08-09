@@ -2,49 +2,42 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "E-Notes: Build",
+      "label": "Inkwell: Install dependencies",
       "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\run-enotes.ps1",
-        "-Action",
-        "build"
-      ],
+      "command": "npm run install:all",
       "problemMatcher": []
     },
     {
-      "label": "E-Notes: Start",
+      "label": "Inkwell: Build",
+      "detail": "Builds the React front end into frontend/dist.",
       "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\run-enotes.ps1",
-        "-Action",
-        "start"
-      ],
+      "command": "npm run build",
       "problemMatcher": []
     },
     {
-      "label": "E-Notes: Stop",
+      "label": "Inkwell: Start",
+      "detail": "Builds the front end, then serves it and the API on http://localhost:3000",
       "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\run-enotes.ps1",
-        "-Action",
-        "stop"
-      ],
-      "problemMatcher": []
+      "command": "npm start",
+      "problemMatcher": [],
+      "isBackground": true,
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Inkwell: Dev (API, auto-restart)",
+      "detail": "Run alongside 'Dev (web)' for hot reload on both sides.",
+      "type": "shell",
+      "command": "npm run dev:api",
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Inkwell: Dev (web, hot reload)",
+      "detail": "Vite dev server on http://localhost:5173, proxying /api to port 3000.",
+      "type": "shell",
+      "command": "npm run dev:web",
+      "problemMatcher": [],
+      "isBackground": true
     }
   ]
 }

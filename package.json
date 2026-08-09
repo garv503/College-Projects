@@ -1,0 +1,18 @@
+{
+  "name": "inkwell",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Inkwell - React front end, Node/Express API, MySQL",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "npm run build && npm run serve",
+    "serve": "cd server && npm start",
+    "check": "cd server && npm run check",
+    "dev:api": "cd server && npm run dev",
+    "dev:web": "cd frontend && npm run dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

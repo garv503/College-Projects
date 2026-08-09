@@ -1,5 +1,0 @@
-# Copy this file to db.properties and set values for your MySQL installation.
-# db.properties is intentionally ignored by Git.
-db.url=jdbc:mysql://localhost:3306/enotes?useSSL=false&serverTimezone=UTC
-db.username=root
-db.password=

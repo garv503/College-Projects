@@ -15,6 +15,8 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Whether the server has Google sign-in configured, and with which client id.
+  const [google, setGoogle] = useState({ enabled: false, clientId: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -22,7 +24,9 @@ export function AuthProvider({ children }) {
     api
       .getSession()
       .then((data) => {
-        if (!cancelled) setUser(data.user);
+        if (cancelled) return;
+        setUser(data.user);
+        setGoogle({ enabled: Boolean(data.googleEnabled), clientId: data.googleClientId });
       })
       .catch(() => {
         // A failed probe just means "not signed in" as far as the UI cares.
@@ -43,6 +47,13 @@ export function AuthProvider({ children }) {
     return signedIn;
   }, []);
 
+  /** Signs in with a Google ID token; the server creates the account if new. */
+  const signInWithGoogle = useCallback(async (credential) => {
+    const data = await api.loginWithGoogle(credential);
+    setUser(data.user);
+    return data;
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await api.logout();
@@ -54,8 +65,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, signIn, signOut, setUser }),
-    [user, loading, signIn, signOut],
+    () => ({ user, loading, google, signIn, signInWithGoogle, signOut, setUser }),
+    [user, loading, google, signIn, signInWithGoogle, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
