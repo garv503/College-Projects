@@ -11,12 +11,22 @@ by owner-scoped queries in the data layer.
 --------------------------------------------------------------------
  Technologies Used
 --------------------------------------------------------------------
-Front-End: JSP + JSTL, custom CSS design system, inline SVG icons
-           (no Bootstrap, no jQuery, no CDN - fully self-contained)
-Back-End:  Java Servlets (javax.servlet 4.0), JDBC, MySQL
+Front-End: React 18 + React Router (Vite build), custom CSS design
+           system, inline SVG icons - no UI framework, no CDN
+Back-End:  Java Servlets (javax.servlet 4.0) exposing a JSON REST
+           API, JDBC, MySQL
+JSON:      Jackson
 Pooling:   HikariCP
-Build:     Maven
+Build:     Maven (drives the npm build too - one command)
 Server:    Apache Tomcat 9.x (NOT 10+ - see Compatibility below)
+
+The front end was migrated from JSP to React. The database schema and
+the whole data layer (DBConnect, UserDAO, PostDAO, the models) carried
+over unchanged; the servlets became JSON endpoints instead of
+forwarding to pages, and the JSPs were replaced by React components.
+
+React and the API ship in a single WAR and are served from one origin,
+so there is no CORS setup and nothing extra to run.
 
 
 --------------------------------------------------------------------
@@ -26,9 +36,39 @@ Server:    Apache Tomcat 9.x (NOT 10+ - see Compatibility below)
 - Dashboard with note counts and recent notes
 - Write, edit, and delete notes
 - Pin notes so they sort to the top
-- Full-text style search across note titles and bodies
-- Light and dark theme, remembered per browser
+- Search across note titles and bodies
+- Show/hide control on password fields
+- Single fixed dark theme
 - Responsive layout down to mobile widths
+
+
+--------------------------------------------------------------------
+ API
+--------------------------------------------------------------------
+All endpoints return JSON. Authentication is the Tomcat session
+cookie; writes additionally require the session's CSRF token in an
+X-CSRF-Token header (a header, not a form field, because the bodies
+are JSON and so carry no request parameters).
+
+  GET    /api/auth/session     current user + CSRF token; returns
+                               {"user": null} when signed out
+  POST   /api/auth/register    create an account
+  POST   /api/auth/login       sign in
+  POST   /api/auth/logout      sign out
+
+  GET    /api/notes            list; optional ?q= search
+  POST   /api/notes            create
+  GET    /api/notes/{id}       fetch one
+  PUT    /api/notes/{id}       update
+  DELETE /api/notes/{id}       delete
+  POST   /api/notes/{id}/pin   toggle pinned
+
+  GET    /api/stats            dashboard counters
+
+Status codes: 401 when not signed in, 403 when the CSRF token is
+missing or wrong, 404 for a note that does not exist *or* belongs to
+someone else (the two are deliberately indistinguishable), 400 for
+validation failures.
 
 
 --------------------------------------------------------------------
@@ -57,15 +97,19 @@ the original version:
 - Every note query is scoped by owner id, so a note cannot be read,
   edited, or deleted by anyone but its author - changing the id in a
   URL simply reports "not found".
-- The author of a new note is taken from the session, not from a
-  form field, so a note cannot be filed under another account.
-- Sign-in is enforced by a servlet filter rather than a per-page
-  check, so protection cannot be omitted on a new page.
-- All state-changing actions are POST and carry a per-session CSRF
-  token; requests without a valid token are rejected with 403.
-- All user-supplied text is escaped on output via <c:out>, so note
-  content containing markup is displayed, not executed.
+- The author of a new note is taken from the session, not from the
+  request body, so a note cannot be filed under another account.
+- Access is enforced by a servlet filter on /api/*, so protection
+  cannot be omitted when an endpoint is added. The React route guards
+  are a convenience only - the API is the boundary, and it is checked
+  on every call regardless of what the client renders.
+- Every state-changing method (POST, PUT, DELETE) requires a valid
+  per-session CSRF token; requests without one are rejected with 403.
+- User text is escaped on render by JSX interpolation, so note content
+  containing markup is displayed, not executed. The app never uses
+  dangerouslySetInnerHTML.
 - A new session id is issued on sign-in (session fixation defence).
+- The session cookie is HttpOnly, so script cannot read it.
 - Sign-in failures give one message for both unknown email and wrong
   password, so the response cannot be used to enumerate accounts.
 
@@ -73,38 +117,42 @@ the original version:
 --------------------------------------------------------------------
  Project Structure
 --------------------------------------------------------------------
-src/main/java/com/
+BACK END - src/main/java/com/
   Db/DBConnect.java           HikariCP connection pool
   Db/DatabaseInitializer.java Creates/upgrades the schema at startup
   DAO/UserDAO.java            Registration, credential checking
   DAO/PostDAO.java            Owner-scoped note queries, search, pin
   User/UserDetails.java       User model
   User/Post.java              Note model
+  api/AuthApi.java            /api/auth/* endpoints
+  api/NotesApi.java           /api/notes/* endpoints
+  api/StatsApi.java           /api/stats
+  util/Json.java              JSON request/response helpers
   util/Csrf.java              Per-session CSRF tokens
-  util/WebUtils.java          Session user, flash messages, validation
-  filter/AuthFilter.java      Requires sign-in outside public pages
-  filter/CsrfFilter.java      Rejects POSTs without a valid token
-  Servlet/UserServlet.java        POST /UserServlet     -> register
-  Servlet/loginServlet.java       POST /loginServlet    -> sign in
-  Servlet/logoutServlet.java      POST /logoutServlet   -> sign out
-  Servlet/AddNotesServlet.java    POST /AddNotesServlet -> create
-  Servlet/NoteEditServlet.java    POST /NoteEditServlet -> update
-  Servlet/deleteServlet.java      POST /deleteServlet   -> delete
-  Servlet/PinServlet.java         POST /PinServlet      -> pin/unpin
+  util/WebUtils.java          Session user, parameter parsing, validation
+  filter/AuthFilter.java      401s unauthenticated API calls
+  filter/CsrfFilter.java      Rejects writes without a valid token
+  filter/SpaFilter.java       Serves the React shell for client routes
+
+FRONT END - frontend/
+  index.html               Vite entry point
+  vite.config.js           Build config; dev-server proxy to the API
+  src/main.jsx             App bootstrap (Router + AuthProvider)
+  src/App.jsx              Routes and the signed-in route guard
+  src/api.js               fetch wrapper: cookies + CSRF header
+  src/auth.jsx             Auth context; resolves the session on load
+  src/styles.css           The whole design system
+  src/components/          Icon, Navbar, Alert, PasswordInput, NoteCard
+  src/pages/               Landing, Login, Register, Dashboard,
+                           Notes, NoteEditor, NotFound
+
+  Built output lands in frontend/dist and Maven packages it into the
+  WAR root. node_modules/ and dist/ are gitignored.
 
 src/main/webapp/
-  index.jsp        Landing page
-  login.jsp        Sign in
-  register.jsp     Create account
-  home.jsp         Dashboard (counts + recent notes)
-  addNotes.jsp     New note form
-  edit.jsp         Edit note form
-  showNotes.jsp    Note list with search
-  errorPage.jsp    Friendly error page
-  all_component/   allcss, icons (SVG sprite), navbar, flash,
-                   passwordToggle
-  css/style.css    The whole design system
-  WEB-INF/web.xml  Welcome files (routes come from @WebServlet)
+  WEB-INF/web.xml  Welcome file + session config (endpoints come from
+                   @WebServlet / @WebFilter annotations)
+  img/             Static images
 
 src/main/resources/
   schema.sql               Reference schema for a fresh database
@@ -135,6 +183,9 @@ use a project-local Tomcat 9.x instead.
   system-wide install is optional if you use that script)
 - Apache Tomcat 9.x (same note - project-local copy works fine)
 - MySQL Server running locally with a database named "enotes"
+- Node.js is NOT required. Maven downloads its own copy into the
+  ignored .tools directory and runs the npm build itself, the same way
+  Maven and Tomcat are already kept project-local.
 - VS Code with "Extension Pack for Java" and "Community Server
   Connector" (recommended, see .vscode/extensions.json)
 
@@ -208,12 +259,30 @@ Equivalent from a terminal:
     powershell -ExecutionPolicy Bypass -File .\scripts\run-enotes.ps1 -Action start
     powershell -ExecutionPolicy Bypass -File .\scripts\run-enotes.ps1 -Action stop
 
+These build the React app as part of the same step - there is no
+separate npm command to remember.
+
 Manual alternative, with your own Java 17 + Maven + Tomcat 9:
 
-    1. mvn clean package
+    1. mvn clean package     (compiles Java and builds React)
     2. Copy target\enotes.war into <tomcat>\webapps\
     3. Start Tomcat (<tomcat>\bin\startup.bat)
     4. Open http://localhost:8080/enotes/
+
+
+Front-end development with hot reload (optional)
+------------------------------------------------
+Editing React normally means rebuilding the WAR. For a faster loop,
+run Tomcat as usual and start Vite's dev server alongside it:
+
+    cd frontend
+    npm install
+    npm run dev
+
+Then use http://localhost:5173/enotes/ instead. Vite proxies /api to
+Tomcat on 8080 (see vite.config.js), so the same session and API are
+used while the UI reloads on save. This is a development convenience
+only - the deployed WAR is always same-origin and needs no proxy.
 
 
 --------------------------------------------------------------------
@@ -230,3 +299,8 @@ Manual alternative, with your own Java 17 + Maven + Tomcat 9:
   Tomcat 10+ instance - use Tomcat 9.x (see Compatibility above).
 - Port 8080 already in use: another process is bound to it; stop it
   or change the port in <tomcat>\conf\server.xml.
+- Blank page with 404s for /enotes/assets/*: the React build did not
+  run or its output was not packaged. Run a clean build
+  (`mvn clean package`) and confirm frontend/dist exists afterwards.
+- The first build is slow: Maven is downloading Node and the npm
+  packages into .tools. Later builds reuse them.

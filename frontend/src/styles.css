@@ -283,13 +283,15 @@ a:hover { text-decoration: underline; }
     white-space: nowrap;
 }
 
-/* Mobile nav toggle, driven by a checkbox so it needs no JavaScript. */
-.nav-toggle { display: none; }
-
+/* Mobile nav toggle. Hidden at desktop widths; React drives the open state
+   via .is-open on the two collapsible groups. */
 .nav-toggle-label {
     display: none;
     padding: 8px;
+    border: 0;
     border-radius: 10px;
+    background: transparent;
+    font: inherit;
     cursor: pointer;
     color: var(--text);
 }
@@ -811,8 +813,7 @@ a:hover { text-decoration: underline; }
     border-top: 1px solid var(--border);
 }
 
-.note-actions form { display: contents; }
-
+/* Pushes the delete action to the far end of the row. */
 .note-actions .spacer { margin-left: auto; }
 
 .tag {
@@ -898,8 +899,8 @@ a:hover { text-decoration: underline; }
         width: 100%;
     }
 
-    .nav-toggle:checked ~ .nav-links,
-    .nav-toggle:checked ~ .nav-actions {
+    .nav-links.is-open,
+    .nav-actions.is-open {
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -907,7 +908,7 @@ a:hover { text-decoration: underline; }
         margin: 0 0 14px;
     }
 
-    .nav-toggle:checked ~ .nav-links { margin-top: 8px; }
+    .nav-links.is-open { margin-top: 8px; }
 
     .nav-link { padding: 11px 13px; }
 

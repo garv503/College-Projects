@@ -1,6 +1,9 @@
 package com.filter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -12,17 +15,28 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.util.Csrf;
+import com.util.Json;
 
 /**
- * Rejects state-changing requests that do not carry the session's CSRF token.
+ * Rejects state-changing API calls that do not carry the session's CSRF token.
  *
- * <p>Applies to POST only. Every write in the app is now a POST for exactly this
- * reason: deleting a note used to be a plain GET link, so any page that could
- * make a signed-in user's browser issue a request - even an {@code <img>} tag -
- * could delete their notes.
+ * <p>Guards every method that is not read-only, not just POST, because the API
+ * also updates with PUT and removes with DELETE.
+ *
+ * <p>Sign-in and registration are exempt: they are the requests that establish a
+ * session, so there is no meaningful token to present yet, and there is nothing
+ * to forge - an attacker gains nothing by causing a victim's browser to log in
+ * as the attacker's own account would require the attacker's credentials.
  */
-@WebFilter("/*")
+@WebFilter("/api/*")
 public class CsrfFilter implements Filter {
+
+    private static final Set<String> SAFE_METHODS = new HashSet<>(Arrays.asList(
+            "GET", "HEAD", "OPTIONS"));
+
+    private static final Set<String> EXEMPT_PATHS = new HashSet<>(Arrays.asList(
+            "/api/auth/login",
+            "/api/auth/register"));
 
     @Override
     public void init(FilterConfig filterConfig) {
@@ -35,10 +49,12 @@ public class CsrfFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        boolean isWrite = "POST".equalsIgnoreCase(request.getMethod());
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        boolean needsToken = !SAFE_METHODS.contains(request.getMethod().toUpperCase())
+                && !EXEMPT_PATHS.contains(path);
 
-        if (isWrite && !Csrf.isValid(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+        if (needsToken && !Csrf.isValid(request)) {
+            Json.error(response, HttpServletResponse.SC_FORBIDDEN,
                     "Invalid or missing security token. Please reload the page and try again.");
             return;
         }

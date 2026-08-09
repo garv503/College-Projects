@@ -15,32 +15,27 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.util.Json;
+
 /**
- * Requires a signed-in session for everything except the public pages.
+ * Requires a signed-in session for the API, except the public auth endpoints.
  *
- * <p>Access used to be checked by a scriptlet at the top of each JSP, and three
- * of those called {@code sendRedirect} without {@code return}, so the page body
- * kept executing and rendering after the "redirect". Enforcing it in one filter
- * means protection cannot be forgotten on a new page, and a rejected request is
- * stopped before any handler runs.
+ * <p>Only {@code /api/*} is guarded. Everything else is the React bundle - HTML,
+ * JS and CSS containing no user data - which is served to anyone; the app calls
+ * {@code /api/auth/session} on load and renders a signed-out view if there is no
+ * session. Because unauthenticated API calls are answered with 401 JSON rather
+ * than a redirect to a login page, the client can tell "not signed in" apart
+ * from "here is a page".
  */
-@WebFilter("/*")
+@WebFilter("/api/*")
 public class AuthFilter implements Filter {
 
-    /** Pages and endpoints reachable without signing in. */
-    private static final Set<String> PUBLIC_PATHS = new HashSet<>(Arrays.asList(
-            "/",
-            "/index.jsp",
-            "/login.jsp",
-            "/register.jsp",
-            "/loginServlet",
-            "/UserServlet"));
-
-    /** Static assets are served to anyone; they contain no user data. */
-    private static final Set<String> PUBLIC_PREFIXES = new HashSet<>(Arrays.asList(
-            "/css/",
-            "/js/",
-            "/img/"));
+    /** Endpoints that must work before there is a session. */
+    private static final Set<String> PUBLIC_API_PATHS = new HashSet<>(Arrays.asList(
+            "/api/auth/session",
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/logout"));
 
     @Override
     public void init(FilterConfig filterConfig) {
@@ -55,30 +50,16 @@ public class AuthFilter implements Filter {
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
-        if (isPublic(path) || isSignedIn(request)) {
+        if (PUBLIC_API_PATHS.contains(path) || isSignedIn(request)) {
             chain.doFilter(request, response);
             return;
         }
 
-        HttpSession session = request.getSession();
-        session.setAttribute("flashError", "Please sign in to continue.");
-        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        Json.error(response, HttpServletResponse.SC_UNAUTHORIZED, "Please sign in to continue.");
     }
 
     @Override
     public void destroy() {
-    }
-
-    private boolean isPublic(String path) {
-        if (PUBLIC_PATHS.contains(path)) {
-            return true;
-        }
-        for (String prefix : PUBLIC_PREFIXES) {
-            if (path.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private boolean isSignedIn(HttpServletRequest request) {

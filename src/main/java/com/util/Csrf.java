@@ -11,15 +11,20 @@ import javax.servlet.http.HttpSession;
  * Per-session CSRF tokens.
  *
  * <p>Without these, another site can make a visitor's browser submit a request
- * to E-Notes using their live session cookie. Every state-changing form carries
- * the session's token in a hidden field, and {@code CsrfFilter} rejects any
- * write that does not present it - an attacker's page cannot read the token, so
- * it cannot forge the request.
+ * to E-Notes using their live session cookie. Every state-changing call carries
+ * the session's token, and {@code CsrfFilter} rejects any write that does not
+ * present it - an attacker's page cannot read the token, so it cannot forge the
+ * request.
+ *
+ * <p>The client fetches its token from {@code /api/auth/session} and returns it
+ * in the {@code X-CSRF-Token} header. A header is required rather than a form
+ * field because the API sends JSON bodies, which carry no request parameters.
  */
 public final class Csrf {
 
     public static final String SESSION_ATTRIBUTE = "csrfToken";
     public static final String PARAMETER_NAME = "csrfToken";
+    public static final String HEADER_NAME = "X-CSRF-Token";
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -49,7 +54,13 @@ public final class Csrf {
         }
 
         String expected = (String) session.getAttribute(SESSION_ATTRIBUTE);
-        String supplied = request.getParameter(PARAMETER_NAME);
+
+        // Header first (how the API client sends it); the parameter is kept as a
+        // fallback so a plain form post would still work.
+        String supplied = request.getHeader(HEADER_NAME);
+        if (supplied == null) {
+            supplied = request.getParameter(PARAMETER_NAME);
+        }
 
         return expected != null && constantTimeEquals(expected, supplied);
     }
