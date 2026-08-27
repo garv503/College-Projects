@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import session from 'express-session';
-import MySQLStoreFactory from 'express-mysql-session';
 
 import { config, warnAboutInsecureDefaults } from './config.js';
 import { pool } from './db.js';
@@ -26,24 +25,21 @@ app.use(express.json({ limit: '256kb' }));
 
 /* ------------------------------------------------------------------ session */
 
-const MySQLStore = MySQLStoreFactory(session);
-
-// Sessions live in MySQL rather than in memory, so a server restart does not
-// sign everyone out and the default in-memory store's leak warning does not
-// apply.
-const sessionStore = new MySQLStore({ createDatabaseTable: true, clearExpired: true }, pool);
-
+// Sessions are held in the default in-memory store: there is no `sessions`
+// table, by explicit project choice. Two consequences follow from that.
+// Restarting the server discards every session, so everyone is signed out, and
+// because the store is per-process this does not survive being scaled to more
+// than one instance.
 app.use(
   session({
     name: 'inkwell.sid',
     secret: config.session.secret,
-    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true, // Script cannot read it.
       sameSite: 'lax', // Not sent on cross-site POSTs; CSRF tokens back this up.
-      secure: config.isProduction, // HTTPS-only once deployed.
+      secure: config.session.secureCookie, // HTTPS-only once deployed.
       maxAge: config.session.maxAgeMs,
     },
   }),
@@ -119,7 +115,6 @@ async function start() {
 async function shutdown(signal) {
   console.log(`\n[Inkwell] ${signal} received, shutting down.`);
   try {
-    await new Promise((resolve) => sessionStore.close(resolve));
     await pool.end();
   } finally {
     process.exit(0);

@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 import Notes from './pages/Notes';
 import NoteEditor from './pages/NoteEditor';
 import Admin from './pages/Admin';
-import AccountSetup from './pages/AccountSetup';
 import NotFound from './pages/NotFound';
 import { useAuth } from './auth';
 
@@ -95,10 +94,6 @@ export default function App() {
             </RedirectIfSignedIn>
           }
         />
-
-        {/* Reached from the emailed link; deliberately not behind a guard,
-            since the whole point is that the recipient may be signed out. */}
-        <Route path="/account-setup" element={<AccountSetup />} />
 
         <Route
           path="/dashboard"

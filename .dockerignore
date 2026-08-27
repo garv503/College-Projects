@@ -1,0 +1,21 @@
+# Dependencies are installed fresh inside the image.
+node_modules
+**/node_modules
+
+# Built by the frontend-build stage; a stale local copy should never leak in.
+frontend/dist
+
+# Local secrets - never enter the build context.
+server/.env
+.env
+
+# VCS / editor / docs noise.
+.git
+.github
+.vscode
+*.md
+*.txt
+
+npm-debug.log*
+Thumbs.db
+.DS_Store

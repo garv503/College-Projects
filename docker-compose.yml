@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# Inkwell - Docker Compose
+#
+# The container runs the app only. It connects to the MySQL already installed
+# on this machine, the same database a terminal run uses, so both ways of
+# running the project show the same accounts and the same notes.
+#
+# The app is published on 3001 so it can run alongside a terminal run on 3000.
+# Copy .env.example to .env to change any of this.
+# ---------------------------------------------------------------------------
+
+name: inkwell
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: inkwell-app
+    container_name: inkwell-app
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      APP_URL: ${APP_URL:-http://localhost:${APP_PORT:-3001}}
+      # `localhost` inside a container is the container. This name is how
+      # Docker Desktop exposes the machine the container is running on, which
+      # is where MySQL actually is.
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      DB_NAME: ${DB_NAME:-enotes}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-to-a-long-random-string}
+      # The image runs NODE_ENV=production but is served over plain HTTP on
+      # localhost, where a Secure cookie is dropped and sign-in would silently
+      # never stick. Set true once HTTPS is in front of the app.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Blank MAIL_HOST prints the registration code to this container's log
+      # instead of emailing it - see `docker compose logs app`.
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-Inkwell <no-reply@inkwell.local>}
+    ports:
+      - "${APP_PORT:-3001}:3000"
+    extra_hosts:
+      # Linux hosts do not define host.docker.internal on their own.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # Node 20 has a global fetch, so this needs nothing installed in the image.
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/auth/session').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

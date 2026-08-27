@@ -4,11 +4,12 @@ import { config } from './config.js';
 /**
  * Outgoing email.
  *
- * When SMTP is configured, mail is sent for real. When it is not - which is the
- * default for local development - the message is printed to the console
- * instead, including any link it contains, so the flow can be exercised
- * end to end without a mail account. It deliberately never throws: failing to
- * send a setup email must not fail the signup that triggered it.
+ * When SMTP is configured, mail is sent for real. When it is not - the default
+ * locally - the message is printed to the server console instead, code and all,
+ * so registration can be completed end to end without a mail account.
+ *
+ * Sending deliberately never throws. A signup must not fail because the mail
+ * server did; the caller decides what to tell the user.
  */
 
 let transporter = null;
@@ -23,10 +24,13 @@ if (config.mail.enabled) {
   });
 }
 
+/** True when a real message would be sent rather than printed to the console. */
+export const mailEnabled = () => Boolean(transporter);
+
 /**
  * Sends an email, or logs it when SMTP is not configured.
  *
- * @returns {Promise<{delivered: boolean, previewText?: string}>}
+ * @returns {Promise<{delivered: boolean}>}
  */
 export async function sendMail({ to, subject, text, html }) {
   if (!transporter) {
@@ -36,7 +40,7 @@ export async function sendMail({ to, subject, text, html }) {
       + `Subject: ${subject}\n\n`
       + `${text}\n`
       + '───────────────────────────────────────────────────────────────────────\n'
-      + 'Set MAIL_HOST / MAIL_USER / MAIL_PASSWORD in server/.env to send for real.\n',
+      + 'Set MAIL_HOST / MAIL_USER / MAIL_PASSWORD to send this for real.\n',
     );
     return { delivered: false };
   }
@@ -45,29 +49,26 @@ export async function sendMail({ to, subject, text, html }) {
     await transporter.sendMail({ from: config.mail.from, to, subject, text, html });
     return { delivered: true };
   } catch (error) {
-    // Logged, not thrown: the caller's operation already succeeded.
+    // Logged, not thrown: the caller's operation is still valid.
     console.error('[Inkwell] could not send email to', to, '-', error.message);
     return { delivered: false };
   }
 }
 
-/** The "finish setting up your account" email sent after a Google signup. */
-export function accountSetupEmail({ name, link }) {
-  const subject = 'Finish setting up your Inkwell account';
+/** The "confirm your email address" message sent during registration. */
+export function verificationEmail({ name, code, minutes }) {
+  const subject = `${code} is your Inkwell verification code`;
 
   const text = [
     `Hi ${name},`,
     '',
-    'Your Inkwell account was created using Google sign-in.',
+    'Use this code to finish creating your Inkwell account:',
     '',
-    'You can keep signing in with Google. If you would also like to sign in',
-    'with an email and password, set a password here:',
+    `    ${code}`,
     '',
-    link,
+    `The code expires in ${minutes} minutes and can only be used once.`,
     '',
-    'This link can only be used once and expires in 24 hours.',
-    '',
-    'If you did not create this account, you can ignore this email.',
+    'If you did not try to create an account, you can ignore this email.',
     '',
     '— Inkwell',
   ].join('\n');
@@ -75,21 +76,16 @@ export function accountSetupEmail({ name, link }) {
   const html = `
     <div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:520px;margin:0 auto;
                 background:#141b2b;color:#e9eefa;padding:32px;border-radius:14px">
-      <h1 style="margin:0 0 4px;font-size:20px">Welcome to Inkwell, ${escapeHtml(name)}</h1>
-      <p style="color:#9aa8c2;margin:0 0 24px">Your account was created using Google sign-in.</p>
-      <p style="margin:0 0 20px">
-        You can keep signing in with Google. If you would also like to sign in with an
-        email and password, set one now:
+      <h1 style="margin:0 0 4px;font-size:20px">Confirm your email, ${escapeHtml(name)}</h1>
+      <p style="color:#9aa8c2;margin:0 0 24px">
+        Enter this code to finish creating your Inkwell account.
       </p>
-      <p style="margin:0 0 24px">
-        <a href="${escapeHtml(link)}"
-           style="display:inline-block;padding:12px 22px;border-radius:10px;
-                  background:linear-gradient(135deg,#4fd1e8,#2f6fe0);color:#fff;
-                  text-decoration:none;font-weight:600">Set a password</a>
-      </p>
+      <p style="margin:0 0 24px;font-size:34px;font-weight:700;letter-spacing:0.22em;
+                text-align:center;padding:18px;border-radius:12px;background:#0d1320;
+                border:1px solid #24304a;color:#4fd1e8">${escapeHtml(code)}</p>
       <p style="color:#6b7994;font-size:13px;margin:0">
-        This link can only be used once and expires in 24 hours.
-        If you did not create this account, you can ignore this email.
+        The code expires in ${minutes} minutes and can only be used once.
+        If you did not try to create an account, you can ignore this email.
       </p>
     </div>`;
 

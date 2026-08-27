@@ -2,8 +2,8 @@
  * Configuration doctor: `npm run check` from the project root.
  *
  * Reports what is configured, what is missing, and what looks wrong - notably
- * the two easy mistakes when setting up Google sign-in, which are pasting an
- * API key or the client *secret* instead of the client ID.
+ * a session cookie marked HTTPS-only while the app is served over plain HTTP,
+ * which breaks sign-in without producing any error.
  *
  * Read-only. It never changes configuration or data.
  */
@@ -32,6 +32,17 @@ if (config.session.secret.startsWith('local-development')
 ok('APP_URL', config.appUrl);
 ok('PORT', String(config.port));
 
+// A Secure cookie served over plain HTTP is dropped by the browser, so sign-in
+// looks like it worked and every later request is anonymous. Silent otherwise.
+if (config.session.secureCookie && config.appUrl.startsWith('http://')) {
+  bad('COOKIE_SECURE', `cookie is HTTPS-only but APP_URL is ${config.appUrl} - nobody can stay signed in`);
+  problems += 1;
+} else if (config.session.secureCookie) {
+  ok('COOKIE_SECURE', 'session cookie is HTTPS-only');
+} else {
+  off('COOKIE_SECURE', 'session cookie works over plain HTTP (set true behind HTTPS)');
+}
+
 /* -------------------------------------------------------------- database */
 
 console.log('\nDatabase');
@@ -54,40 +65,12 @@ try {
   problems += 1;
 }
 
-/* --------------------------------------------------------- google sign-in */
-
-console.log('\nGoogle sign-in  (optional)');
-
-const id = config.google.clientId.trim();
-
-if (!id) {
-  off('GOOGLE_CLIENT_ID', 'not set - the button shows as a disabled placeholder');
-  console.log('           Create one: Google Cloud Console -> APIs & Services');
-  console.log('           -> Credentials -> Create credentials -> OAuth client ID');
-  console.log('           -> Web application, with this authorised JS origin:');
-  console.log(`             ${config.appUrl}`);
-} else if (id.startsWith('AIza')) {
-  // An API key, not an OAuth client id - the most common mix-up.
-  bad('GOOGLE_CLIENT_ID', 'this looks like an API KEY (starts "AIza"), not an OAuth client ID');
-  problems += 1;
-} else if (id.startsWith('GOCSPX-')) {
-  // The client secret sits right next to the id in the Console.
-  bad('GOOGLE_CLIENT_ID', 'this looks like the client SECRET (starts "GOCSPX-"). Use the client ID');
-  problems += 1;
-} else if (!id.endsWith('.apps.googleusercontent.com')) {
-  bad('GOOGLE_CLIENT_ID', 'should end in ".apps.googleusercontent.com"');
-  problems += 1;
-} else {
-  ok('GOOGLE_CLIENT_ID', `${id.slice(0, 12)}...${id.slice(-28)}`);
-  console.log(`           Make sure ${config.appUrl} is an authorised JavaScript origin.`);
-}
-
 /* -------------------------------------------------------------------- mail */
 
-console.log('\nOutgoing email  (optional)');
+console.log('\nOutgoing email  (registration codes)');
 
 if (!config.mail.enabled) {
-  off('MAIL_HOST', 'not set - setup emails print to this console instead of sending');
+  off('MAIL_HOST', 'not set - verification codes print to the server console');
 } else {
   ok('MAIL_HOST', `${config.mail.host}:${config.mail.port}`);
   if (!config.mail.user || !config.mail.password) {
@@ -105,7 +88,7 @@ if (!config.mail.enabled) {
 
 console.log('\n' + '='.repeat(60));
 console.log(problems === 0
-  ? 'No problems found. Optional features marked OFF simply are not enabled.\n'
+  ? 'No problems found. Anything marked OFF simply is not enabled.\n'
   : `${problems} problem(s) to fix - see [ FIX ] above.\n`);
 
 await pool.end();

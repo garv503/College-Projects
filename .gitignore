@@ -6,6 +6,7 @@ frontend/dist/
 
 # Local configuration (database and session credentials)
 server/.env
+/.env
 
 # Logs
 *.log

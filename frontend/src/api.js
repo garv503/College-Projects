@@ -68,30 +68,6 @@ export async function getSession() {
   return data;
 }
 
-/** Exchanges a Google ID token for a session. */
-export async function loginWithGoogle(credential) {
-  const data = await request('/auth/google', {
-    method: 'POST',
-    body: { credential },
-  });
-  // Signing in starts a new session, so the old token is dead.
-  csrfToken = data.csrfToken;
-  return data;
-}
-
-/** Checks a setup link before showing the form. */
-export async function checkSetupToken(token) {
-  return request(`/auth/setup-token/${encodeURIComponent(token)}`);
-}
-
-/** Consumes a setup link and sets the account's password. */
-export async function setupPassword(token, password) {
-  return request('/auth/setup-password', {
-    method: 'POST',
-    body: { token, password },
-  });
-}
-
 export async function login(email, password) {
   const data = await request('/auth/login', {
     method: 'POST',
@@ -102,10 +78,31 @@ export async function login(email, password) {
   return data.user;
 }
 
+/**
+ * Step 1 of signing up: emails a confirmation code.
+ *
+ * No account exists until `verifyOtp` confirms that code.
+ */
 export async function register(name, email, password) {
   return request('/auth/register', {
     method: 'POST',
     body: { name, email, password },
+  });
+}
+
+/** Step 2: confirms the code and creates the account. */
+export async function verifyOtp(email, code) {
+  return request('/auth/verify-otp', {
+    method: 'POST',
+    body: { email, code },
+  });
+}
+
+/** Issues a fresh code for a signup waiting to be confirmed. */
+export async function resendOtp(email) {
+  return request('/auth/resend-otp', {
+    method: 'POST',
+    body: { email },
   });
 }
 

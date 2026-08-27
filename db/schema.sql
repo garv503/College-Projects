@@ -1,15 +1,14 @@
 -- ---------------------------------------------------------------------------
 -- Inkwell reference schema.
 --
--- The server also self-migrates at startup (see server/src/schema.js), so you
+-- The server creates these tables at startup (see server/src/schema.js), so you
 -- normally do not need to run this by hand. It is kept as the authoritative
--- description of the expected shape of the database, and for setting up a
--- fresh database from scratch:
+-- description of the database, and for setting one up from scratch:
 --
 --     mysql -u root -p < db/schema.sql
 --
--- A third table, `sessions`, is created automatically at runtime by
--- express-mysql-session and is not described here.
+-- Sessions are held in memory by the server process, so there is deliberately
+-- no `sessions` table.
 -- ---------------------------------------------------------------------------
 
 CREATE DATABASE IF NOT EXISTS enotes
@@ -31,6 +30,24 @@ CREATE TABLE IF NOT EXISTS user (
     -- Stops two accounts sharing one email, which would let a duplicate
     -- registration silently shadow an existing login.
     CONSTRAINT uq_user_email UNIQUE (email)
+) ENGINE = InnoDB;
+
+-- A signup that has not confirmed its email address. It lives here rather than
+-- in `user`, so an unverified address never becomes a usable account and never
+-- occupies an email someone else may be entitled to register. The row is
+-- deleted the moment the code is accepted.
+CREATE TABLE IF NOT EXISTS pending_registration (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    full_name    VARCHAR(100) NOT NULL,
+    email        VARCHAR(190) NOT NULL,
+    password     VARCHAR(255) NOT NULL,
+    otp_code     VARCHAR(12)  NOT NULL,
+    otp_expires  DATETIME     NOT NULL,
+    attempts     INT          NOT NULL DEFAULT 0,
+    last_sent_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- One pending signup per address; re-registering replaces it.
+    CONSTRAINT uq_pending_email UNIQUE (email)
 ) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS post (

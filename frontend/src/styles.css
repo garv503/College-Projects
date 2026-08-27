@@ -563,61 +563,6 @@ a:hover { text-decoration: underline; }
 .input-group .input { flex: 1; }
 
 /* --------------------------------------------------------------------------
-   Google sign-in
-   -------------------------------------------------------------------------- */
-.google-signin {
-    margin-top: 22px;
-}
-
-/* Rule either side of a centred label. */
-.divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 18px;
-    color: var(--text-faint);
-    font-size: 0.82rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.divider::before,
-.divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-}
-
-/* Google renders its own button into this slot; only centre it. */
-.google-button-slot {
-    display: flex;
-    justify-content: center;
-    min-height: 44px;
-}
-
-.google-placeholder .btn {
-    /* Google's own button is white; match it so enabling the real one is not
-       a visual jump. */
-    background: #fff;
-    color: #3c4043;
-    border-color: #dadce0;
-}
-
-.google-placeholder .field-hint {
-    margin-top: 8px;
-}
-
-.google-placeholder code {
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: var(--bg-sunken);
-    border: 1px solid var(--border);
-    font-size: 0.85em;
-    color: var(--text-muted);
-}
-
-/* --------------------------------------------------------------------------
    Alerts
    -------------------------------------------------------------------------- */
 .alert {
@@ -648,6 +593,46 @@ a:hover { text-decoration: underline; }
     color: var(--danger);
     background: var(--danger-bg);
     border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+/* Neither good news nor bad - context the reader needs to act on. */
+.alert-info {
+    color: var(--text-muted);
+    background: var(--bg-sunken);
+    border-color: var(--border);
+}
+
+/* --------------------------------------------------------------------------
+   One-time code entry
+   -------------------------------------------------------------------------- */
+
+/* Six digits read as digits, not prose: wide tracking and a tabular face stop
+   the code shifting width as it is typed. */
+.otp-input {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5em;
+    /* The tracking adds a trailing gap after the last digit; nudge back so the
+       string still looks centred. */
+    text-indent: 0.5em;
+    text-align: center;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.otp-input::placeholder {
+    color: var(--text-faint);
+    letter-spacing: 0.5em;
+}
+
+/* Secondary choices under a form - resend, start over. */
+.auth-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 14px;
 }
 
 /* --------------------------------------------------------------------------

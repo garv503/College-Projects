@@ -10,7 +10,10 @@
     "serve": "cd server && npm start",
     "check": "cd server && npm run check",
     "dev:api": "cd server && npm run dev",
-    "dev:web": "cd frontend && npm run dev"
+    "dev:web": "cd frontend && npm run dev",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app"
   },
   "engines": {
     "node": ">=20"
