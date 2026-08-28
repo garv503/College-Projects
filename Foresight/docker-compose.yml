@@ -67,40 +67,20 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
 
-  seed:
-    build: .
-    container_name: foresight-seed
-    depends_on:
-      db:
-        condition: service_healthy
-    environment: &api-env
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ${DB_PASSWORD:-devpassword}
-      DB_NAME: ${DB_NAME:-foresight}
-      JWT_SECRET: ${JWT_SECRET:-compose-dev-secret-change-me}
-      DEBUG: "true"
-      CORS_ORIGINS: "*"
-    # Runs once, populates the demo data, exits. `restart: "no"` stops
-    # Compose from treating that clean exit as a crash and looping.
-    #
-    # Safe to run again: seed_demo.py does nothing when students already
-    # exist, so restarting the stack never destroys data. To rebuild the
-    # demo dataset from scratch:
-    #     docker compose run --rm seed python seed_demo.py --force
-    restart: "no"
-    command: ["python", "seed_demo.py"]
-
-    # The image carries a HEALTHCHECK that probes the API on port 5000.
-    # That is right for the `api` service and meaningless here - this
-    # container runs a script and exits, it never serves anything - so
-    # the probe could only ever fail. The container then finished with
-    # exit 0 while its last recorded health was "unhealthy", which made
-    # Docker Desktop grey out the whole stack as though something had
-    # gone wrong. Disabling the inherited check is the fix.
-    healthcheck:
-      disable: true
+  # There is no separate "seed" service. Loading the demo data is done by
+  # the API container's entrypoint (backend/docker-entrypoint.sh) before
+  # gunicorn starts.
+  #
+  # A dedicated one-shot container is the more obvious design, but it
+  # exits as soon as it finishes and then remains in the project as a
+  # stopped container. Docker Desktop counts running containers against
+  # the total, so the stack showed as "2 of 3 running" - a permanent
+  # half-filled status icon on a perfectly healthy stack. Two
+  # long-running services means "all running" means what it appears to.
+  #
+  # The seeding step is safe on every start: it waits for MySQL, then
+  # does nothing if students already exist. To rebuild the dataset:
+  #     docker compose exec api python seed_demo.py --force
 
   api:
     build: .
@@ -109,9 +89,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      seed:
-        condition: service_completed_successfully
-    environment: *api-env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-devpassword}
+      DB_NAME: ${DB_NAME:-foresight}
+      JWT_SECRET: ${JWT_SECRET:-compose-dev-secret-change-me}
+      DEBUG: "true"
+      CORS_ORIGINS: "*"
     ports:
       # FIXED host port 5000 -> container 5000.
       #

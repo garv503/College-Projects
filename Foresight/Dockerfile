@@ -26,6 +26,13 @@ COPY backend/ backend/
 COPY frontend/ frontend/
 COPY database/ database/
 
+# Normalise line endings and make the entrypoint executable. Both matter
+# on Windows: git may check the file out with CRLF, and `\r` on the
+# shebang line makes Linux report the confusing "no such file or
+# directory" for a script that plainly exists.
+RUN sed -i 's/\r$//' backend/docker-entrypoint.sh \
+    && chmod +x backend/docker-entrypoint.sh
+
 # Run as a non-root user. A container process running as root that gets
 # compromised has root on the container filesystem.
 RUN useradd --create-home --shell /bin/bash appuser \
@@ -39,6 +46,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/api/health').status==200 else 1)"
 
 WORKDIR /app/backend
+
+# The entrypoint seeds the database, then execs the CMD below. Keeping
+# them separate means `docker compose run api <something else>` still
+# gets the same preparation.
+ENTRYPOINT ["/app/backend/docker-entrypoint.sh"]
 
 # gunicorn, not `flask run`. The development server is single-threaded
 # and explicitly not for production use.

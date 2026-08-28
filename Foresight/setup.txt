@@ -158,12 +158,14 @@
    1. A MySQL 8.0 container started.
    2. The five SQL scripts in database/ ran in order, creating 9 tables,
       6 views, 8 triggers and 7 stored procedures and functions.
-   3. A one-shot "seed" container generated 78 demo students with a full
-      term of marks and attendance, then exited.
-   4. The API started behind Gunicorn and began serving on port 5000.
+   3. The API container started. Before launching the web server its
+      entrypoint waited for MySQL and generated 78 demo students with a
+      full term of marks and attendance.
+   4. Gunicorn started and began serving on port 5000.
 
-   Seeing "foresight-seed  Exited (0)" is CORRECT. That container is
-   meant to run once and stop.
+   The stack is TWO containers, foresight-db and foresight-api, and both
+   should show as running. Seeding happens inside the API container, so
+   nothing is left behind in a stopped state.
 
 
 ----------------------------------------------------------------------
@@ -327,7 +329,7 @@
    Roll numbers look like CSE2025001, AIML2025003, ECE2025002.
    The seed script prints a working one when it finishes:
 
-       docker compose logs seed          (Method A)
+       docker compose logs api           (Method A)
        python backend/seed_demo.py       (Method B, prints on completion)
 
    To list the accounts and their email addresses:

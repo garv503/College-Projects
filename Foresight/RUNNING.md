@@ -50,11 +50,10 @@ foresight-api   Up 20 seconds (healthy)   0.0.0.0:5000->5000/tcp
 foresight-db    Up 28 seconds (healthy)   0.0.0.0:3307->3306/tcp
 ```
 
-`foresight-seed` is **expected to show as `Exited (0)`**. It is a
-one-shot container that loads demo data and stops; it is not a failure.
-Only `api` and `db` are long-running, and only those two report a health
-status. In Docker Desktop the stack is fine when both show green — the
-seed row sitting at `Exited (0)` alongside them is normal.
+Both containers should be **running and healthy** — that is the whole
+stack. There is no third container: loading the demo data happens inside
+the API container's entrypoint before gunicorn starts, so nothing is left
+behind in a stopped state.
 
 ### Startup order
 
@@ -74,7 +73,6 @@ that is still initialising.
 ```bash
 docker compose logs -f api       # follow the API
 docker compose logs db           # database, including schema loading
-docker compose logs seed         # demo-data loader
 docker compose logs --tail 50    # last 50 lines, all services
 ```
 
@@ -91,8 +89,8 @@ reach the same account.
 | `faculty` | `faculty@foresight.local` | `Faculty@2024` | Analytics, marks entry, CSV import |
 | a roll number, e.g. `cse2025001` | that student's college email | `Student@2024` | Own records only |
 
-The seed prints a working roll number when it runs:
-`docker compose logs seed | grep Student@`
+The startup log prints a working roll number the first time it seeds:
+`docker compose logs api | grep Student@`
 
 To look up an account's email:
 
@@ -107,7 +105,7 @@ docker compose exec db mysql -uroot -p foresight \
 
 ```bash
 # Re-seed from scratch (wipes students, marks, attendance)
-docker compose run --rm seed python seed_demo.py --force
+docker compose exec api python seed_demo.py --force
 ```
 
 Plain `docker compose up` is **safe to run repeatedly** — the seed
@@ -155,22 +153,21 @@ running `up` again appears to do nothing, because MySQL only executes
 
 ## Troubleshooting
 
-### Docker Desktop shows the stack as not healthy
+### Docker Desktop shows the stack as partly running
 
-Expand the `foresight` group and look at the individual containers. The
-stack is fine when **`foresight-api` and `foresight-db` both report
-healthy**; `foresight-seed` sitting at `Exited (0)` beside them is normal
-and does not make the stack unhealthy.
+The status icon reflects **running containers against the total**, not
+health. The stack has exactly two containers and both should be running:
 
 ```bash
 docker compose ps -a
-docker inspect foresight-api --format '{{.State.Health.Status}}'
-docker inspect foresight-db  --format '{{.State.Health.Status}}'
 ```
 
-Both should print `healthy`. If they do, the application is working
-whatever the collapsed group row suggests — confirm with
-`curl http://localhost:5000/api/health`.
+If one is missing or stopped, its log says why:
+`docker compose logs db` or `docker compose logs api`.
+
+A half-filled icon means a container in the project is stopped. A stopped
+container left over from an older version of the stack causes it too —
+`docker compose down --remove-orphans` clears those.
 
 ### `no configuration file provided: not found`
 
