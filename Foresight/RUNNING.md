@@ -52,6 +52,9 @@ foresight-db    Up 28 seconds (healthy)   0.0.0.0:3307->3306/tcp
 
 `foresight-seed` is **expected to show as `Exited (0)`**. It is a
 one-shot container that loads demo data and stops; it is not a failure.
+Only `api` and `db` are long-running, and only those two report a health
+status. In Docker Desktop the stack is fine when both show green — the
+seed row sitting at `Exited (0)` alongside them is normal.
 
 ### Startup order
 
@@ -151,6 +154,23 @@ running `up` again appears to do nothing, because MySQL only executes
 ---
 
 ## Troubleshooting
+
+### Docker Desktop shows the stack as not healthy
+
+Expand the `foresight` group and look at the individual containers. The
+stack is fine when **`foresight-api` and `foresight-db` both report
+healthy**; `foresight-seed` sitting at `Exited (0)` beside them is normal
+and does not make the stack unhealthy.
+
+```bash
+docker compose ps -a
+docker inspect foresight-api --format '{{.State.Health.Status}}'
+docker inspect foresight-db  --format '{{.State.Health.Status}}'
+```
+
+Both should print `healthy`. If they do, the application is working
+whatever the collapsed group row suggests — confirm with
+`curl http://localhost:5000/api/health`.
 
 ### `no configuration file provided: not found`
 
