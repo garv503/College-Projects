@@ -1,9 +1,9 @@
 """Student-facing routes: dashboard data and report cards.
 
 Every route here that names a student calls `require_self_or_staff`.
-That single line is the fix for the original project's most serious flaw:
-`GET /student-data/<id>` had no check at all, so any logged-in student
-could read any other student's marks by changing the number in the URL.
+Without it, a signed-in student could read anyone's marks by changing
+the number in the URL, so the check belongs on each route rather than
+being assumed from the blueprint.
 """
 
 from __future__ import annotations

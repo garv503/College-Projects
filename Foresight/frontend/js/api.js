@@ -4,17 +4,14 @@
    One place that knows how to talk to the backend. Pages call
    `api.get(...)` and never touch fetch, headers or tokens themselves.
 
-   What changed from the original front end:
+   localStorage holds exactly one thing: the signed token. Identity comes
+   from `GET /api/auth/me`, which the server answers based on the token's
+   signature, so editing anything client-side either changes nothing or
+   invalidates the signature.
 
-   The old code stored `role` and `student_id` in localStorage and let
-   the page decide what to show based on them. Anyone could open the
-   console, type `localStorage.role = "admin"`, reload, and land on the
-   admin panel - and because the API checked nothing either, it worked.
-
-   Here localStorage holds exactly one thing: the signed token. Identity
-   comes from `GET /api/auth/me`, which the server answers based on the
-   token's signature. Editing anything client-side either changes
-   nothing or invalidates the signature.
+   Storing `role` here instead would be the mistake to avoid - anyone can
+   open the console and set it. The browser is never the authority on who
+   the user is.
    ===================================================================== */
 
 const API_BASE = (() => {

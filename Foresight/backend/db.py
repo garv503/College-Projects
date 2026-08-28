@@ -4,21 +4,16 @@ Everything that talks to MySQL goes through this module. Routes never
 import `mysql.connector` themselves, which keeps the driver in one place
 and means the connection rules below are impossible to opt out of.
 
-Three problems this solves that the original code had:
+Three rules hold for every query:
 
-1. A new TCP connection was opened for every request and closed again.
-   Here a *pool* is opened once at startup and connections are borrowed
-   and returned, so the connect handshake is paid once, not per request.
+1. Connections come from a pool opened once at startup, so the connect
+   handshake is paid once rather than on every request.
 
-2. `conn.close()` was called on the happy path only. Any query that
-   raised leaked the connection until the process died. Here the
-   connection is tied to the Flask request and released by a teardown
-   handler that runs whether the request succeeded or blew up.
+2. A connection belongs to the request and is released by a teardown
+   handler, which runs whether the request succeeded or raised.
 
-3. Nothing was ever rolled back. A multi-statement write that failed
-   halfway left the database in a half-written state. Here an
-   uncommitted transaction is always rolled back on the way out, so a
-   route that crashes before calling `commit()` changes nothing.
+3. An uncommitted transaction is always rolled back on release, so a
+   route that fails before calling `commit()` changes nothing.
 """
 
 from __future__ import annotations

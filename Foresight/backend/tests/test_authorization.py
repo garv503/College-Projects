@@ -1,9 +1,9 @@
 """Authorization: who is allowed to read and change what.
 
-These are the tests for the original project's most serious flaw. Every
-endpoint was open: `GET /student-data/7` returned student 7's marks to
-anyone who asked, and `admin.html` was protected only by not being linked
-from anywhere.
+Access control is the easiest thing to break without noticing, because
+a route that leaks data still returns 200 and looks healthy. These tests
+attempt every route as every role, so a missing guard fails the build
+rather than shipping quietly.
 """
 
 from __future__ import annotations
@@ -70,11 +70,11 @@ def test_faculty_cannot_reach_admin_only_routes(client, seeded, faculty_token, r
     assert response.status_code == 403, f"{route} allowed faculty"
 
 
-# --- The IDOR that the original project had ---------------------------
+# --- Insecure direct object reference ---------------------------------
 
 
 def test_a_student_cannot_read_another_students_records(client, seeded, alice_token):
-    """The headline fix. Changing the id in the URL used to work."""
+    """Changing the id in the URL must not reach another student."""
     bob_id = seeded["students"]["CSE2023002"]
 
     response = client.get(f"/api/students/{bob_id}", headers=auth_header(alice_token))

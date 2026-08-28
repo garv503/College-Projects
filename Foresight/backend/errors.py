@@ -1,14 +1,13 @@
 """Uniform error handling.
 
-The original API answered every failure with HTTP 200 and a body of
-`{"status": "fail"}`. That is a problem for anything consuming it: a
-browser's `res.ok` is true, monitoring sees a healthy endpoint, and a
-caller has to inspect the body to discover the request did not work.
-
-Here every failure is a real HTTP status code with one predictable JSON
+Every failure carries a real HTTP status code and one predictable JSON
 shape, so the front end has exactly one error path to write:
 
     {"error": {"code": "not_found", "message": "Student 42 not found"}}
+
+Returning 200 for a failure would defeat that: `response.ok` would be
+true in the browser and monitoring would see a healthy endpoint, leaving
+the caller to inspect the body to discover the request did not work.
 """
 
 from __future__ import annotations

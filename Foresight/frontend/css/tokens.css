@@ -5,9 +5,6 @@
    here once. Nothing further down the stylesheet hardcodes a hex value -
    components reference roles (--surface, --text-1), never a raw hex, so
    the whole palette can be re-tuned by editing this one file.
-
-   The old stylesheet had six variables and then hardcoded colours
-   inline in the HTML, so changing a colour meant hunting through markup.
    ===================================================================== */
 
 :root {

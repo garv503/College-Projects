@@ -1,12 +1,12 @@
 # Foresight
 
-A full-stack academic analytics platform. It turns raw marks and
-attendance into a ranked, explained view of which students need help —
-and reaches them while there is still time to act.
+Academic analytics for a college. Marks and attendance go in; a ranked,
+**explained** view of which students need help comes out — while there is
+still time to act on it.
 
-Built with Flask, MySQL 8 and vanilla JavaScript, with JWT authentication,
-role-based access control, an audited database, 165 automated tests and a
-one-command Docker setup.
+Built with Flask, MySQL 8 and vanilla JavaScript. JWT authentication,
+role-based access control, an audited database, 165 automated tests and
+a one-command Docker setup.
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────────┐
@@ -15,13 +15,45 @@ one-command Docker setup.
 │             │◀────│  + services  │◀────│   procedures     │
 └─────────────┘     └──────────────┘     └──────────────────┘
 ```
+
+---
+
+## Documentation
+
+| File | What it covers |
+|---|---|
+| **README.md** (this file) | What the project is, how it is built, why |
+| **[setup.txt](setup.txt)** | Complete first-time setup, both methods, troubleshooting |
+| **[RUNNING.md](RUNNING.md)** | Day-to-day operation: start, stop, logs, reset |
+| **[MySQL Code.txt](MySQL%20Code.txt)** | Every SQL object in one listing |
+| **[../Documentation/](../Documentation/)** | Project reports (.docx) |
+
+---
+
+## Run it
+
+**Docker — nothing to install:**
+
+```bash
+cd Foresight
+docker compose up --build
+```
+
+**Then open → http://localhost:5000**
+
+That is the only port you need. MySQL is also published on **3307** for a
+GUI client. Both ports are fixed.
+
+Sign in as `admin` / `Admin@2024`.
+
+Full instructions, including running it without Docker, are in
+**[setup.txt](setup.txt)**.
+
 ---
 
 ## Contents
 
 - [What it does](#what-it-does)
-- [Screens](#screens)
-- [Quick start](#quick-start)
 - [Architecture](#architecture)
 - [The database](#the-database)
 - [How risk scoring works](#how-risk-scoring-works)
@@ -29,18 +61,17 @@ one-command Docker setup.
 - [API](#api)
 - [Testing](#testing)
 - [Project layout](#project-layout)
-- [What changed from v1](#what-changed-from-v1)
 
 ---
 
 ## What it does
 
-**For a student** — one dashboard showing their marks, attendance, class
-rank and percentile, how each subject compares to the class average,
-whether they are improving or slipping, and a plain-English explanation
-of their academic standing with suggested next steps.
+**For a student** — one dashboard: marks, attendance, class rank and
+percentile, how each subject compares to the class average, whether they
+are improving or slipping, and a plain-English explanation of their
+academic standing with suggested next steps.
 
-**For faculty and administrators** — cohort statistics, a grade
+**For faculty and administrators** — cohort statistics, grade
 distribution, per-subject pass rates that surface which papers are
 failing people, and a list of at-risk students ranked by severity *with
 the reason for each*. Plus bulk CSV import, CSV export, student
@@ -57,136 +88,8 @@ management and a full audit trail.
 | **Bulk CSV import** | Validates the entire file before writing anything; a single bad row rejects the upload with per-line errors |
 | **Report cards** | Grades, credit-weighted GPA and rank, as JSON or a CSV download |
 | **Audit trail** | Written by database triggers, so a change made directly in a SQL client is recorded too |
-| **RBAC** | Three roles, enforced on every endpoint — a student cannot read another student's records |
-| **Self-service password reset** | Username + registered email resets a forgotten password with no session required |
+| **RBAC** | Three roles enforced on every endpoint — a student cannot read another student's records |
 | **API docs** | Interactive Swagger UI at `/api/docs` |
-
----
-
-## Screens
-
-| Student dashboard | Admin console |
-|---|---|
-| Marks, attendance, rank, trend, per-subject comparison and an explained academic standing | Cohort KPIs, grade distribution, pass rates, and at-risk students ranked with reasons |
-
-> Screenshots: run the project (below) and visit `/` — the demo seed
-> produces 78 students across four cohorts, so every chart has real
-> shape rather than placeholder data.
-
----
-
-## Quick start
-
-Both ways of running the project are supported, and they can run at the
-same time — Docker uses its own MySQL container, the terminal path uses
-the MySQL installed on your machine. One `.env` configures both.
-
-### Option A — Docker (nothing to install)
-
-```bash
-git clone https://github.com/garv503/College-Projects.git
-cd College-Projects
-git checkout Student-Analytics
-
-# The application lives in Foresight/; Documentation/ sits beside it.
-# Every command below is run from inside Foresight/.
-cd Foresight
-
-cp .env.example .env      # optional; sensible defaults are built in
-docker compose up --build
-```
-
-Open **http://localhost:5000**. Compose starts MySQL, loads the schema,
-views, triggers and procedures, seeds a demo dataset, then starts the API
-behind gunicorn.
-
-Useful commands:
-
-```bash
-docker compose logs -f api                              # follow the API log
-docker compose down                                     # stop, keep the data
-docker compose down -v                                  # stop and wipe the database
-docker compose run --rm seed python seed_demo.py --force  # rebuild the demo data
-APP_PORT=5001 docker compose up                         # use a different host port
-```
-
-`docker compose up` is safe to run repeatedly — the seed does nothing if
-students already exist, so a student you added through the admin console
-survives a restart.
-
-### Option B — Terminal
-
-**Requires:** Python 3.11+ and MySQL 8.0+
-
-```bash
-# 0. Get the code. Every command below runs from inside Foresight/.
-git clone https://github.com/garv503/College-Projects.git
-cd College-Projects
-git checkout Student-Analytics
-cd Foresight
-
-# 1. Configuration
-cp .env.example .env
-#    then edit .env and set DB_PASSWORD to your MySQL root password
-
-# 2. Dependencies
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate       # macOS / Linux
-pip install -r backend/requirements.txt
-
-# 3. Database — order matters, each file builds on the last
-mysql -u root -p < database/schema.sql
-mysql -u root -p foresight < database/views.sql
-mysql -u root -p foresight < database/triggers.sql
-mysql -u root -p foresight < database/procedures.sql
-mysql -u root -p foresight < database/sample_data.sql
-
-# 4. Demo data (78 students with a full term of marks and attendance)
-python backend/seed_demo.py
-#    already have data? re-seed from scratch with:
-#    python backend/seed_demo.py --force
-
-# 5. Run
-python backend/app.py
-```
-
-Open **http://localhost:5000**.
-
-### Running both at once
-
-They collide only on the host port, so give one of them a different one:
-
-```bash
-PORT=5001 python backend/app.py     # terminal on 5001, Docker keeps 5000
-# or
-APP_PORT=5001 docker compose up     # Docker on 5001, terminal keeps 5000
-```
-
-The MySQL container is already published on **3307**, not 3306, so it
-never fights a locally installed MySQL. Override with `DB_HOST_PORT`.
-
-> **How one `.env` serves both:** Compose reads `.env` to fill in the
-> `${...}` values in `docker-compose.yml`, so `DB_PASSWORD` and
-> `JWT_SECRET` are shared. The two settings that *must* differ inside a
-> container — `DB_HOST` and `DB_PORT` — are hardcoded to `db:3306` in the
-> compose file rather than substituted, so a `.env` written for the
-> terminal (where `DB_HOST` is `localhost`) cannot break the containers.
-
-### Demo logins
-
-The seed script prints these when it finishes:
-
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `Admin@2024` | Full access |
-| `faculty` | `Faculty@2024` | Analytics + marks entry |
-| any roll number | `Student@2024` | Their own records only |
-
-Roll numbers look like `CSE2025001` — the seed prints a working example.
-
-> These are demo credentials for a local database. Change them before
-> exposing the app to a network.
 
 ---
 
@@ -216,7 +119,7 @@ the CSV export and the at-risk report each recalculated them inline, they
 would eventually disagree. Defining them once as a view means all three
 are mathematically guaranteed to match.
 
-The views build in layers, each one consuming the last:
+The views build in layers, each consuming the last:
 
 ```
 v_enrollment_summary       one row per (student, subject)
@@ -241,14 +144,13 @@ Open `frontend/index.html` and it runs. No npm, no bundler, no
 - **`charts.js`** — every chart, so styling rules are applied once.
 
 Styling is a token system: `tokens.css` declares every colour, space and
-radius once, and nothing below it hardcodes a value — the whole palette
-can be re-tuned by editing that one file.
+radius, and nothing below it hardcodes a value.
 
 ---
 
 ## The database
 
-Seven tables, six views, eight triggers, five procedures and two
+Nine tables, six views, eight triggers, five procedures and two
 functions.
 
 ### Schema
@@ -268,9 +170,9 @@ functions.
 ### Three design decisions worth explaining
 
 **1. Marks are individual assessments, not one number.**
-Storing a flat `marks` column makes trend analysis impossible. Each
-assessment carries its own `max_marks`, so a 20-mark quiz and a 100-mark
-final coexist and the subject percentage is `SUM(obtained)/SUM(max)` —
+A flat `marks` column makes trend analysis impossible. Each assessment
+carries its own `max_marks`, so a 20-mark quiz and a 100-mark final
+coexist and the subject percentage is `SUM(obtained)/SUM(max)` —
 weighting each by what it was actually worth. Averaging the individual
 percentages instead would treat a quiz as equal to a final.
 
@@ -294,7 +196,7 @@ Python, any new code path that skipped it would create an untracked
 change. In a trigger it is structurally impossible to miss:
 
 ```sql
--- This is rejected, even typed directly into the MySQL console:
+-- Rejected, even typed directly into the MySQL console:
 INSERT INTO assessments (enrollment_id, type, marks_obtained, max_marks, assessed_on)
 VALUES (1, 'quiz', 99, 20, '2025-01-01');
 -- ERROR 1644 (45000): marks_obtained cannot exceed max_marks
@@ -304,20 +206,9 @@ VALUES (1, 'quiz', 99, 20, '2025-01-01');
 
 ## How risk scoring works
 
-The original version was a single cliff:
-
-```python
-status = "Good"
-if avg_marks < 40 or avg_attendance < 60:
-    status = "Weak"
-```
-
-Three problems: it crashed with a `TypeError` when a student had no
-marks yet (`AVG` of nothing is `NULL`); 39.9% with three failed subjects
-looked identical to 39.9% with none; and it told a student they were
-"Weak" without saying why.
-
-The replacement scores 0–100 from four weighted signals:
+A student is not simply "weak". The score is 0–100, built from four
+weighted signals so students can be **ranked** by how much attention they
+need rather than merely filtered:
 
 | Signal | Weight | Rule |
 |---|---|---|
@@ -350,42 +241,53 @@ The same weights exist in **two places on purpose**: the SQL view
 agree, so they cannot drift apart and make the dashboard contradict the
 report.
 
+A student with no marks yet scores 0 in the `unknown` band rather than
+looking like a top performer — `AVG` of nothing is `NULL`, and treating
+that as zero is a bug waiting to happen.
+
 ---
 
 ## Security
 
-This was the weakest part of the original project, and most of what
-follows is fixed and covered by a test. One thing is a deliberate
-trade-off rather than a fix — see the callout below the table.
+Every item below is covered by a test.
 
-| Threat | Before | Now |
-|---|---|---|
-| **Privilege escalation** | Role in `localStorage`; `localStorage.role = "admin"` worked | Role inside a signed JWT — editing it breaks the signature |
-| **Broken access control (IDOR)** | `GET /student-data/7` returned anyone's marks | Student id read from the token; `require_self_or_staff` on every per-student route |
-| **Unprotected admin panel** | `admin.html` protected only by not being linked | `@require_role("admin")` on every admin endpoint |
-| **Password-reset takeover** | `/forgot-password` reset any password given only a username, no proof of ownership | Requires the username **and** the email on file to match; rate limited on the same budget as login |
-| **Brute force** | Unlimited attempts | 5 per 5 minutes per user+IP, plus a durable `login_attempts` record |
-| **SQL injection** | — | Every value parameterised; sort columns resolved through a whitelist |
-| **Stored XSS** | `innerHTML` with database values | `textContent` throughout; `escapeHtml()` where a template is clearer |
-| **Credentials in git** | `db_config.py` had the MySQL password committed | `.env`, gitignored, with `.env.example` as the template |
-| **Guessable passwords** | Generated as `Name@123` | 12 random characters from `secrets`, not derived from the name |
-| **Script injection** | No headers at all | Strict CSP with **no `unsafe-inline` in `script-src`** — injected script cannot execute. The one inline script (Swagger's bootstrap) carries a per-request nonce. Plus nosniff, `frame-ancestors 'none'`, `object-src 'none'`, Referrer-Policy, Permissions-Policy |
-| **Cached sensitive responses** | — | `no-store` on every `/api/` response, so marks and credentials never reach the browser's disk cache |
-| **Untraceable password reads** | — | Every `GET .../credentials` writes a `password.viewed` audit row naming the admin, student, time and IP. The row records *that* a lookup happened, never the secret |
+| Control | How |
+|---|---|
+| **Authentication** | Signed JWT carrying role and student id; a tampered claim fails verification |
+| **Authorisation** | Role decorator on every endpoint; three roles |
+| **Object-level access** | Student id read from the token, never the URL; `require_self_or_staff` on every per-student route |
+| **Brute force** | 5 attempts per 5 minutes per user+IP, plus a durable `login_attempts` record |
+| **Password reset** | Requires username **and** the email on file; rate limited |
+| **SQL injection** | Every value parameterised; sort columns resolved through a whitelist |
+| **Stored XSS** | `textContent` throughout; `escapeHtml()` where a template is clearer |
+| **Script injection** | Strict CSP with **no `unsafe-inline` in `script-src`** — injected script cannot execute. The one inline script (Swagger's bootstrap) carries a per-request nonce |
+| **Response caching** | `no-store` on every `/api/` response, so marks and credentials never reach the browser's disk cache |
+| **Secrets** | `.env`, gitignored, with `.env.example` as the template |
+| **Generated passwords** | 12 random characters from `secrets`, never derived from the name |
 
-> **Passwords are stored as plain text**, on purpose, in this build. It
-> is run as a personal admin tool and the owner needs to read a
-> student's password back directly — `GET /api/admin/students/{id}/credentials`
-> — rather than only ever being able to issue a new one. That is a real
-> trade-off, not an oversight: anyone who can read the `users` table
-> reads every password with it. Comparisons still go through
-> `hmac.compare_digest` (constant-time), which is free and closes the one
-> side channel that storage format does not otherwise affect. See the
-> docstring in `backend/security.py` for the full reasoning.
+The app refuses to start with `DEBUG=false` if the JWT secret is still
+the development default, the database password is empty, or CORS is `*`.
 
-The app also refuses to start with `DEBUG=false` if the JWT secret is
-still the development default, the database password is empty, or CORS is
-set to `*`.
+### Password storage — a deliberate trade-off
+
+**Passwords are stored as plain text in this build.** It is run as a
+personal admin tool where the operator needs to read a student's existing
+password back, not merely issue a new one, so
+`GET /api/admin/students/{id}/credentials` returns it.
+
+The consequence is stated plainly: anyone who can read the `users` table
+reads every password with it.
+
+Two compensating measures apply. Comparison uses `hmac.compare_digest`,
+which is constant-time and closes a timing side channel regardless of
+storage format. More importantly, **every password read is audited** with
+the administrator, the student, the time and the IP. Plain storage gives
+up the guarantee that a password cannot be read; auditing preserves the
+guarantee that it cannot be read *anonymously*. The audit row records
+that a lookup happened, never the secret.
+
+Switching to a salted hash is a one-function change in
+`backend/security.py`.
 
 ---
 
@@ -393,8 +295,8 @@ set to `*`.
 
 Interactive documentation: **http://localhost:5000/api/docs**
 
-Every endpoint except `/api/health`, `/api/auth/login` and
-`/api/auth/forgot-password` requires `Authorization: Bearer <token>`.
+36 endpoints. Everything except `/api/health` and `/api/auth/login`
+requires `Authorization: Bearer <token>`.
 
 ```
 POST   /api/auth/login                        exchange credentials for a JWT
@@ -417,8 +319,8 @@ GET    /api/analytics/subjects                per-subject pass rates
 POST   /api/admin/students                    create student + login + enrollments
 PATCH  /api/admin/students/{id}               update
 DELETE /api/admin/students/{id}               soft delete
+GET    /api/admin/students/{id}/credentials   look up username + password (audited)
 POST   /api/admin/students/{id}/reset-password
-GET    /api/admin/students/{id}/credentials   look up the current username + password
 POST   /api/admin/assessments                 record or correct one mark
 POST   /api/admin/import/marks                bulk CSV, all-or-nothing
 POST   /api/admin/import/attendance           bulk CSV
@@ -427,8 +329,7 @@ GET    /api/admin/audit-log                   audit trail (admin only)
 POST   /api/admin/cohorts/promote             promote a semester
 ```
 
-Errors are real HTTP status codes with one predictable shape — the
-original answered every failure with `200 {"status": "fail"}`:
+Errors are real HTTP status codes with one predictable shape:
 
 ```json
 { "error": { "code": "forbidden", "message": "You can only view your own records" } }
@@ -439,27 +340,26 @@ original answered every failure with `200 {"status": "fail"}`:
 ## Testing
 
 ```bash
-cd backend
-pip install -r requirements-dev.txt
+cd Foresight/backend
 pytest
 ```
 
-Run against a real MySQL database rather than a mock. That is
-deliberate: most of the logic worth testing lives in SQL — the views
-compute the percentages, the triggers reject bad marks. Mocking the
+**165 tests**, run against a real MySQL database rather than a mock.
+That is deliberate: most of the logic worth testing lives in SQL — the
+views compute the percentages, the triggers reject bad marks. Mocking the
 database would assert that Python calls a query while never checking the
 query is correct, which is exactly where the bugs are.
 
 The suite builds a `foresight_test` database from the same schema files
-that ship with the project, so a schema change that breaks the app
-breaks the tests too. It is dropped afterwards.
+that ship with the project, so a schema change that breaks the app breaks
+the tests too. It is dropped afterwards.
 
 | File | Covers |
 |---|---|
-| `test_auth.py` | Login, tokens, tampering, expiry, password policy, forgot-password, rate limiting |
-| `test_authorization.py` | Every route × every role, and the IDOR fix |
+| `test_auth.py` | Passwords, tokens, tampering, expiry, policy, rate limiting |
+| `test_authorization.py` | Every route × every role, object-level access, security headers |
 | `test_analytics.py` | Risk scoring, trends, and that SQL and Python agree |
-| `test_data_integrity.py` | Triggers, constraints, CSV import, SQL injection |
+| `test_data_integrity.py` | Triggers, constraints, CSV import, timestamps, injection |
 
 CI runs the suite plus `ruff` on every push, and separately loads all
 five SQL files into a clean MySQL to verify every view, trigger and
@@ -470,14 +370,16 @@ procedure still creates.
 ## Project layout
 
 ```
+Foresight/
 ├── backend/
 │   ├── app.py               application factory
 │   ├── config.py            environment-driven settings
 │   ├── db.py                connection pool, query helpers, transactions
-│   ├── security.py          password checks, JWT, RBAC decorators, rate limiting
+│   ├── security.py          passwords, JWT, RBAC decorators, rate limiting
+│   ├── security_headers.py  CSP and related HTTP headers
 │   ├── validators.py        input validation
 │   ├── errors.py            uniform JSON error handling
-│   ├── json_provider.py     DECIMAL → number, dates → ISO 8601
+│   ├── json_provider.py     DECIMAL → number, timestamps → ISO 8601 with offset
 │   ├── openapi.yaml         hand-written API specification
 │   ├── seed_demo.py         demo dataset generator
 │   ├── routes/              HTTP layer (6 blueprints)
@@ -498,65 +400,16 @@ procedure still creates.
 │   ├── css/                 tokens · base · components · page styles
 │   └── js/                  api · ui · charts · page scripts
 │
-├── .github/workflows/ci.yml
-├── docker-compose.yml
-└── Dockerfile
+├── docker-compose.yml       MySQL + API, fixed on ports 5000 and 3307
+├── Dockerfile
+├── setup.txt                complete setup guide
+├── RUNNING.md               operational runbook
+└── MySQL Code.txt           all SQL in one listing
 ```
 
----
-
-## What changed from v1
-
-The first version was ~350 lines: one `app.py`, one stylesheet, five
-empty SQL files. It worked as a demo. It also compared passwords with
-`==` and no thought given to storage, and returned any student's marks
-to anyone who asked.
-
-**Database** — five empty files (`schema.sql`, `views.sql`,
-`triggers.sql`, `procedures.sql`, `sample_data.sql`) now contain a real
-schema with foreign keys, CHECK constraints and indexes, plus the views,
-triggers and procedures the project was always meant to demonstrate.
-
-**Backend** — one 218-line file became an application factory with
-blueprints, a service layer, connection pooling, request-scoped
-transactions with rollback, and uniform error handling.
-
-**Security** — see [the table above](#security). Passwords remain plain
-text by deliberate choice; everything else in that table is a fix,
-covered by a test.
-
-**Frontend** — a token-based design system, responsive layout,
-accessible charts with legends and tooltips, toast notifications instead
-of `alert()`, real loading and empty states, and XSS-safe rendering.
-
-**New** — risk scoring, cohort ranking, trend detection, class
-comparison, CSV import/export, report cards, an audit log, student
-search, self-service password reset, an automated test suite, CI, Docker
-and API docs.
-
-### Bugs found and fixed while rebuilding
-
-A few worth naming, because they were caught by actually running the
-thing rather than by reading it:
-
-- **DECIMAL serialised as a string.** MySQL returns `DECIMAL` as a Python
-  `Decimal`, which Flask renders as `"44.82"`. Chart.js silently plots
-  nothing for string values, and `"44.82" > 40` is *false* in JavaScript
-  — wrong in a way that looks like it works. Fixed with a custom JSON
-  provider.
-- **Collation mismatch.** A `CASE` expression's string literals took the
-  session's collation while the columns used the database's, so
-  `WHERE risk_band IN ('high','medium')` failed at runtime for some
-  callers and not others. Fixed by pinning the collation in the view.
-- **`hidden` beaten by `display: flex`.** The admin console rendered all
-  four tab panels stacked on top of each other, because an author rule
-  outranks the user-agent stylesheet's `[hidden]`.
-- **Contradictory risk explanation.** A student could be told "medium
-  risk" and "meeting all academic requirements" in the same card,
-  because the band uses a 55% warning threshold while the score only
-  starts accumulating below 40%.
-- **Empty "Why" column.** The admin overview used a code path that
-  skipped the risk explanations, so the reason column rendered as dashes.
+The CI workflow lives at `../.github/workflows/ci.yml` — GitHub only
+reads workflows from the repository root, so it sits one level above this
+directory and reaches down into it.
 
 ---
 

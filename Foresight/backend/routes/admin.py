@@ -1,9 +1,8 @@
 """Administrative routes: student management, bulk import, audit log.
 
 Every route in this blueprint is gated by `@require_role("admin")` or
-`("admin", "faculty")`. In the original project the admin page was just
-`admin.html` - protected by nothing more than not linking to it, so
-typing the URL gave anyone the ability to create students.
+`("admin", "faculty")`. Serving an admin page is not protection in
+itself - anyone can type its URL - so the guard sits on the API.
 """
 
 from __future__ import annotations
@@ -47,18 +46,14 @@ MAX_UPLOAD_BYTES = 2 * 1024 * 1024  # 2 MB is ample for a few thousand CSV rows
 def create_student():
     """Create a student, their login, and their subject enrollments.
 
-    Two improvements over the original `/add-full-student`:
+    The username is derived from the roll number rather than the name,
+    because roll numbers are unique by definition and two students can
+    share a name.
 
-    1. The username was `name.lower()`, so the second student called
-       "Rahul Sharma" hit the UNIQUE constraint and the request died with
-       a raw 500. Usernames are now derived from the roll number, which
-       is unique by definition.
-
-    2. The password was `Name@123`, guessable from the student's own
-       name. It is now randomly generated - still stored as plain text,
-       by design (see backend/security.py), and can be looked up again
-       later from GET /students/<id>/credentials rather than only being
-       shown once.
+    The initial password is randomly generated rather than derived from
+    the student's details. It is stored as plain text by design (see
+    backend/security.py) and can be read back later from
+    GET /students/<id>/credentials.
 
     Enrollment happens through the `sp_enroll_student` procedure, so the
     student row, the login and every enrollment either all commit or all

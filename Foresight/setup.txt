@@ -1,0 +1,489 @@
+======================================================================
+ FORESIGHT - STUDENT PERFORMANCE ANALYTICS
+ COMPLETE SETUP GUIDE
+======================================================================
+
+ This file covers first-time setup, from an empty machine to a running
+ application, for both supported methods.
+
+ Related files:
+   README.md    what the project is and how it is built
+   RUNNING.md   day-to-day operation once it is set up
+
+----------------------------------------------------------------------
+ CONTENTS
+----------------------------------------------------------------------
+
+   0.  Which method should I use?
+   1.  Where the files live
+   2.  Ports used by the project
+   3.  METHOD A - Docker  (recommended)
+   4.  METHOD B - Terminal / local MySQL
+   5.  Configuration (.env) explained
+   6.  Login credentials
+   7.  Verifying the setup worked
+   8.  Running the tests
+   9.  Common setup problems
+  10.  Uninstalling / starting over
+
+
+----------------------------------------------------------------------
+ 0.  WHICH METHOD SHOULD I USE?
+----------------------------------------------------------------------
+
+ METHOD A - Docker
+   Nothing to install except Docker Desktop. One command builds
+   everything: MySQL, the schema, the demo data and the API.
+   Use this to demonstrate the project or run it on a new machine.
+
+ METHOD B - Terminal
+   Requires Python and MySQL installed on your machine. Use this for
+   development, because you can run the tests and the linter directly
+   against the code.
+
+ Both can be installed at the same time. They use separate databases
+ and do not interfere, provided they do not share a host port.
+
+
+----------------------------------------------------------------------
+ 1.  WHERE THE FILES LIVE
+----------------------------------------------------------------------
+
+ After cloning, the repository looks like this:
+
+   College-Projects/
+     |
+     +-- .github/workflows/ci.yml     continuous integration
+     |                                (must stay at the repo root -
+     |                                 GitHub looks nowhere else)
+     |
+     +-- Documentation/               project reports (.docx)
+     |
+     +-- Foresight/                   <-- THE APPLICATION
+           +-- backend/               Flask API, services, tests
+           +-- frontend/              HTML, CSS, JavaScript
+           +-- database/              schema, views, triggers, procedures
+           +-- docker-compose.yml
+           +-- Dockerfile
+           +-- .env.example
+           +-- README.md
+           +-- RUNNING.md
+           +-- setup.txt              (this file)
+           +-- MySQL Code.txt         all SQL in one listing
+
+ IMPORTANT
+   Every command in this guide runs from inside the Foresight/ folder,
+   not from the repository root. Compose resolves its paths relative to
+   docker-compose.yml, so running from one level up fails with
+   "no configuration file provided: not found".
+
+
+----------------------------------------------------------------------
+ 2.  PORTS USED BY THE PROJECT
+----------------------------------------------------------------------
+
+ These are FIXED. They are written into docker-compose.yml and are not
+ configurable, so there is exactly one answer to "which port is it on".
+
+   http://localhost:5000        The application and its API
+                                   /              student + admin UI
+                                   /api/docs      interactive API docs
+                                   /api/health    health check
+
+   localhost:3307               MySQL, for a GUI client such as
+                                MySQL Workbench or DBeaver.
+                                Deliberately NOT 3306, so a MySQL
+                                already installed on your machine keeps
+                                working untouched.
+
+ Inside the Docker network the API talks to the database at db:3306.
+ That is container-to-container and is unrelated to the host ports.
+
+ Port 5000 must be free before you start. See section 9 if it is not.
+
+
+----------------------------------------------------------------------
+ 3.  METHOD A - DOCKER  (recommended)
+----------------------------------------------------------------------
+
+ REQUIREMENTS
+   Docker Desktop  https://www.docker.com/products/docker-desktop/
+   Nothing else. Not Python. Not MySQL.
+
+ STEP 1 - Make sure the Docker engine is running
+   Open Docker Desktop and wait until it reports "Engine running".
+   Then confirm from a terminal:
+
+       docker --version
+       docker info
+
+   If "docker" is not recognised on Windows, it is installed but not on
+   your PATH. Either use the terminal built into Docker Desktop, or add
+   this folder to PATH:
+
+       C:\Program Files\Docker\Docker\resources\bin
+
+ STEP 2 - Get the code
+
+       git clone https://github.com/garv503/College-Projects.git
+       cd College-Projects
+       git checkout Student-Analytics
+       cd Foresight
+
+ STEP 3 - Create the configuration file
+
+       Windows:      copy .env.example .env
+       macOS/Linux:  cp .env.example .env
+
+   The defaults work as-is for Docker. Section 5 explains each setting.
+
+ STEP 4 - Build and start
+
+       docker compose up --build
+
+   The first run takes 2-5 minutes (it downloads the MySQL and Python
+   images). Later runs take about 30 seconds.
+
+   Add -d to run it in the background:
+
+       docker compose up -d --build
+
+ STEP 5 - Open the application
+
+       http://localhost:5000
+
+   Sign in with the credentials in section 6.
+
+ WHAT JUST HAPPENED
+   1. A MySQL 8.0 container started.
+   2. The five SQL scripts in database/ ran in order, creating 9 tables,
+      6 views, 8 triggers and 7 stored procedures and functions.
+   3. A one-shot "seed" container generated 78 demo students with a full
+      term of marks and attendance, then exited.
+   4. The API started behind Gunicorn and began serving on port 5000.
+
+   Seeing "foresight-seed  Exited (0)" is CORRECT. That container is
+   meant to run once and stop.
+
+
+----------------------------------------------------------------------
+ 4.  METHOD B - TERMINAL / LOCAL MYSQL
+----------------------------------------------------------------------
+
+ REQUIREMENTS
+   Python 3.11 or newer     https://www.python.org/downloads/
+   MySQL 8.0 or newer       https://dev.mysql.com/downloads/mysql/
+
+   Check both are available:
+
+       python --version
+       mysql --version
+
+   On Windows the mysql client is often not on PATH. It normally lives
+   at:  C:\Program Files\MySQL\MySQL Server 8.0\bin
+
+ STEP 1 - Get the code
+
+       git clone https://github.com/garv503/College-Projects.git
+       cd College-Projects
+       git checkout Student-Analytics
+       cd Foresight
+
+ STEP 2 - Configuration
+
+       Windows:      copy .env.example .env
+       macOS/Linux:  cp .env.example .env
+
+   Now EDIT .env and set DB_PASSWORD to your MySQL root password.
+   This step is required - the default is blank and will not connect.
+
+ STEP 3 - Python environment
+
+       python -m venv .venv
+
+       Windows:      .venv\Scripts\activate
+       macOS/Linux:  source .venv/bin/activate
+
+       pip install -r backend/requirements.txt
+
+   Installing into a virtual environment keeps these five packages
+   separate from anything else on your machine.
+
+ STEP 4 - Create the database
+
+   Run these FIVE scripts IN THIS ORDER. The order matters: the views
+   query the tables, the procedures call the views, and the reference
+   data depends on the constraints.
+
+       mysql -u root -p < database/schema.sql
+       mysql -u root -p foresight < database/views.sql
+       mysql -u root -p foresight < database/triggers.sql
+       mysql -u root -p foresight < database/procedures.sql
+       mysql -u root -p foresight < database/sample_data.sql
+
+   You will be prompted for the MySQL root password each time.
+
+   WARNING
+     schema.sql begins with DROP DATABASE IF EXISTS foresight. Running
+     it destroys an existing database of that name.
+
+   The same statements are available as one file if you prefer:
+
+       mysql -u root -p < "MySQL Code.txt"
+
+ STEP 5 - Load the demo data
+
+       python backend/seed_demo.py
+
+   This creates 78 students with marks and attendance, and prints the
+   login details when it finishes.
+
+   If the database already has students it does nothing. To rebuild the
+   demo data from scratch:
+
+       python backend/seed_demo.py --force
+
+ STEP 6 - Run
+
+       python backend/app.py
+
+   Then open:  http://localhost:5000
+
+   If Docker is already using port 5000, give this one a different port:
+
+       Windows PowerShell:  $env:PORT=5001; python backend/app.py
+       macOS/Linux:         PORT=5001 python backend/app.py
+
+
+----------------------------------------------------------------------
+ 5.  CONFIGURATION (.env) EXPLAINED
+----------------------------------------------------------------------
+
+ One .env file serves BOTH methods. Docker Compose reads it to fill in
+ the ${...} values in docker-compose.yml, and the Python app reads it
+ directly.
+
+ DATABASE
+   DB_HOST=localhost      Used by METHOD B only. Inside a container the
+                          host is always "db", fixed in the compose file
+                          rather than taken from here - so "localhost"
+                          cannot break the containers.
+   DB_PORT=3306           Method B only, same reasoning.
+   DB_USER=root
+   DB_PASSWORD=           REQUIRED for Method B. Shared by both methods:
+                          Compose uses it as the container's MySQL root
+                          password.
+   DB_NAME=foresight
+   DB_POOL_SIZE=5         Connections held open in the pool.
+
+ AUTHENTICATION
+   JWT_SECRET=            The key that signs login tokens. Changing it
+                          logs everyone out, which is what you want if it
+                          ever leaks. Generate a real one with:
+                            python -c "import secrets; print(secrets.token_hex(32))"
+   JWT_TTL_MINUTES=120    How long a login lasts.
+
+ LOGIN RATE LIMITING
+   LOGIN_MAX_ATTEMPTS=5
+   LOGIN_WINDOW_SECONDS=300
+                          Five failures in five minutes locks that
+                          username and address out temporarily.
+
+ SERVER
+   DEBUG=true             Detailed errors. With DEBUG=false the app
+                          REFUSES to start if JWT_SECRET is still the
+                          default, DB_PASSWORD is empty, or CORS is "*".
+   HOST=127.0.0.1
+   PORT=5000              Method B only. The Docker port is fixed in
+                          docker-compose.yml.
+   CORS_ORIGINS=*
+
+ ACADEMIC RULES
+   PASS_PERCENT=40             The pass mark.
+   MIN_ATTENDANCE_PERCENT=75   The attendance requirement.
+                          Both feed the risk scoring, so a college with
+                          different rules changes them here rather than
+                          in the code.
+
+ NOTE
+   .env is listed in .gitignore and is never committed. .env.example is
+   the template and contains no real values.
+
+
+----------------------------------------------------------------------
+ 6.  LOGIN CREDENTIALS
+----------------------------------------------------------------------
+
+   USERNAME              PASSWORD          ROLE
+   --------------------  ----------------  ------------------------------
+   admin                 Admin@2024        Full access
+   faculty               Faculty@2024      Analytics, marks, CSV import
+   <any roll number>     Student@2024      That student's own records
+
+   Roll numbers look like CSE2025001, AIML2025003, ECE2025002.
+   The seed script prints a working one when it finishes:
+
+       docker compose logs seed          (Method A)
+       python backend/seed_demo.py       (Method B, prints on completion)
+
+   These are demonstration credentials for a local database. Change them
+   before exposing the application to a network.
+
+
+----------------------------------------------------------------------
+ 7.  VERIFYING THE SETUP WORKED
+----------------------------------------------------------------------
+
+ 1. Health check
+
+       curl http://localhost:5000/api/health
+
+    Expected:   {"status": "ok", "database": "up"}
+
+    If it says "database": "down", the API is running but cannot reach
+    MySQL. See section 9.
+
+ 2. The pages load
+
+       http://localhost:5000/              sign-in page
+       http://localhost:5000/api/docs      API documentation
+
+ 3. Sign in as admin and confirm the Overview tab shows figures rather
+    than dashes - roughly 78 students and a class average near 62%.
+
+ 4. Confirm the database objects exist
+
+    Method A:
+       docker compose exec db mysql -uroot -p foresight -e "
+         SELECT COUNT(*) FROM information_schema.tables
+          WHERE table_schema='foresight' AND table_type='BASE TABLE';"
+
+    Method B:
+       mysql -u root -p foresight -e "
+         SELECT COUNT(*) FROM information_schema.tables
+          WHERE table_schema='foresight' AND table_type='BASE TABLE';"
+
+    Expected counts:  9 tables, 6 views, 8 triggers, 7 routines.
+
+
+----------------------------------------------------------------------
+ 8.  RUNNING THE TESTS
+----------------------------------------------------------------------
+
+ The test suite needs Method B set up (Python and a local MySQL), even
+ if you normally run the app with Docker.
+
+       cd Foresight
+       .venv\Scripts\activate                       (Windows)
+       pip install -r backend/requirements-dev.txt
+
+       cd backend
+       pytest
+
+ Expected: 165 passed.
+
+ The suite creates its own database called foresight_test, builds it
+ from the same SQL scripts the application uses, and drops it at the
+ end. It never touches your foresight database.
+
+ Linting:
+
+       cd Foresight
+       .venv\Scripts\python.exe -m ruff check backend/
+       .venv\Scripts\python.exe -m ruff format --check backend/
+
+
+----------------------------------------------------------------------
+ 9.  COMMON SETUP PROBLEMS
+----------------------------------------------------------------------
+
+ "no configuration file provided: not found"
+    You are in the wrong folder. cd into Foresight/.
+
+ "docker: command not found" / "not recognised"
+    Docker Desktop is installed but not on PATH. Use Docker Desktop's
+    own terminal, or add to PATH:
+       C:\Program Files\Docker\Docker\resources\bin
+
+ "Cannot connect to the Docker daemon"
+    Docker Desktop is not running. Start it and wait for
+    "Engine running".
+
+ "port is already allocated" / "bind: address already in use"
+    Something already holds port 5000.
+       Windows:      netstat -ano | findstr :5000
+                     taskkill /PID <pid> /F
+       macOS/Linux:  lsof -i :5000
+                     kill -9 <pid>
+    A local "python backend/app.py" is the usual cause.
+
+ The app loads but logins fail or data looks wrong  (WINDOWS)
+    A local Flask server on 127.0.0.1:5000 SHADOWS Docker's
+    0.0.0.0:5000 without either one reporting an error. Your browser
+    reaches the local server, which uses your local MySQL.
+       netstat -ano | findstr :5000
+    A line showing 127.0.0.1:5000 means a local server is shadowing.
+    Stop it, then use Docker.
+
+ "Unknown MySQL server host 'db'" or the API keeps restarting
+    The database container is not running.
+       docker compose logs db
+    If you MOVED OR RENAMED the project folder, that is the cause.
+    Compose stores absolute host paths inside the containers it creates,
+    and after a move those paths no longer exist. Fix:
+       docker compose down
+       docker compose up -d --build
+    Your data survives - it lives in a named volume, not the container.
+
+ Database container exits with code 127
+    Same cause as above. down, then up --build.
+
+ "Access denied for user 'root'@'localhost'"  (Method B)
+    DB_PASSWORD in .env does not match your MySQL root password.
+
+ "Unknown database 'foresight'"  (Method B)
+    Step 4 was not completed. Run the five SQL scripts.
+
+ I edited database/*.sql and nothing changed  (Method A)
+    MySQL runs those scripts ONLY when the data volume is empty.
+       docker compose down -v
+       docker compose up --build
+    This wipes the database and rebuilds it.
+
+ "COLLATION 'utf8mb4_unicode_ci' is not valid for CHARACTER SET 'cp850'"
+    An old Windows console codepage issue. The scripts set their own
+    character set, so make sure you are running the current versions
+    from database/.
+
+
+----------------------------------------------------------------------
+ 10.  UNINSTALLING / STARTING OVER
+----------------------------------------------------------------------
+
+ Reset the Docker setup completely:
+
+       cd Foresight
+       docker compose down -v          removes containers AND the data
+       docker compose up -d --build    rebuild from scratch
+
+ Remove the Docker images as well:
+
+       docker compose down -v --rmi local
+
+ Reset the local (Method B) database:
+
+       mysql -u root -p < database/schema.sql
+       mysql -u root -p foresight < database/views.sql
+       mysql -u root -p foresight < database/triggers.sql
+       mysql -u root -p foresight < database/procedures.sql
+       mysql -u root -p foresight < database/sample_data.sql
+       python backend/seed_demo.py
+
+ Remove the Python environment:
+
+       Windows:      rmdir /s /q .venv
+       macOS/Linux:  rm -rf .venv
+
+======================================================================
+ END OF SETUP GUIDE
+======================================================================

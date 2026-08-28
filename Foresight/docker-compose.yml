@@ -7,6 +7,10 @@
 #  Brings up MySQL, loads the schema, seeds a demo dataset and starts
 #  the API. Nothing else needs installing - not Python, not MySQL.
 #
+#  PORTS (fixed)
+#      http://localhost:5000   the application and its API
+#      localhost:3307          MySQL, for a GUI client such as Workbench
+#
 #  Note on `.env`: Compose reads it automatically to substitute the
 #  ${...} values below. That is deliberate - one file configures both
 #  ways of running the project. The settings that *must* differ inside a
@@ -14,8 +18,13 @@
 #  substituted, so a `.env` written for the local terminal - where
 #  DB_HOST is `localhost` - cannot break the containers.
 #
-#  Host ports are overridable so this can run alongside a local server:
-#      APP_PORT=5001 docker compose up
+#  IMPORTANT: run every compose command from this directory. Compose
+#  resolves the bind-mount paths below relative to the file's location,
+#  and bakes the resulting absolute paths into the containers it creates.
+#  Moving the project while containers still exist leaves them pointing
+#  at paths that no longer exist, and the database container then fails
+#  to start. If that happens, `docker compose down` and bring it up again
+#  from the new location.
 
 name: foresight
 
@@ -29,9 +38,13 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-devpassword}
       MYSQL_DATABASE: ${DB_NAME:-foresight}
     ports:
-      # Exposed so a GUI client can connect. 3307 on the host by default
-      # to avoid colliding with a MySQL already installed on the machine.
-      - "${DB_HOST_PORT:-3307}:3306"
+      # FIXED host port 3307 -> container 3306.
+      #
+      # Deliberately NOT 3306: a locally installed MySQL almost always
+      # holds that port, and the two would fight. 3307 lets a GUI client
+      # such as Workbench connect to the container while a local MySQL
+      # keeps running untouched.
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
       # Everything in this directory runs, in filename order, the first
@@ -90,7 +103,19 @@ services:
         condition: service_completed_successfully
     environment: *api-env
     ports:
-      - "${APP_PORT:-5000}:5000"
+      # FIXED host port 5000 -> container 5000.
+      #
+      #     The application runs at  http://localhost:5000
+      #
+      # Pinned rather than configurable so there is one answer to "which
+      # port is it on". If port 5000 is already taken the stack will fail
+      # to start with a clear bind error, which is the intended behaviour.
+      #
+      # One caveat worth knowing on Windows: a local `python app.py`
+      # binds 127.0.0.1:5000, which SHADOWS Docker's 0.0.0.0:5000 without
+      # either erroring. Requests then reach the local server instead of
+      # the container. Stop any local server before using Docker.
+      - "5000:5000"
 
 volumes:
   db_data:

@@ -1,17 +1,11 @@
 """Authentication, authorisation and password handling.
 
-This module replaces the weakest part of the original project. Before:
+Two rules carry most of the weight here:
 
-  * `/login` returned a role and the front end saved it to localStorage,
-    which the browser console can edit - typing
-    `localStorage.role = 'admin'` was a complete privilege escalation;
-  * no endpoint checked *anything*, so `GET /student-data/7` returned
-    student 7's marks to whoever asked.
-
-Now:
-
-  * a successful login returns a signed JWT, and the signature means a
-    tampered role or student id fails verification;
+  * a successful login returns a signed JWT, so a tampered role or
+    student id fails verification. The role must never be stored
+    somewhere the browser can edit, such as localStorage, where
+    `localStorage.role = 'admin'` would be a privilege escalation;
   * every protected route declares who may call it via a decorator, and
     a student's own id is read from the *token*, never from the URL.
 
@@ -200,8 +194,8 @@ def require_self_or_staff(student_id: int) -> None:
     """Allow access only to that student, or to staff.
 
     Call this from any route that takes a student id in the URL. It is
-    the fix for the original project's worst bug: a student changing the
-    number in the URL and reading a classmate's marks.
+    what stops a student changing the number in the URL and reading a
+    classmate's marks.
     """
     user = g.get("user")
     if not user:

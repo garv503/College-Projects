@@ -4,10 +4,9 @@
    Four panels behind tabs: cohort overview, student list, CSV import and
    the audit log.
 
-   The whole console was previously a single "Add Student" form. There
-   was no way to list students, no way to see class performance, and the
-   page was reachable by anyone who typed its filename because nothing
-   checked a role - on the page or in the API.
+   Controls a role cannot use are removed at load rather than left to
+   fail with a 403 when clicked. That is presentation only - the API
+   enforces every rule independently.
    ===================================================================== */
 
 import { api, requireSession, signOut } from "./api.js";

@@ -131,10 +131,9 @@ button, input, select, textarea {
 .hidden    { display: none !important; }
 
 /* The HTML `hidden` attribute sets `display: none` from the user-agent
-   stylesheet, which any author rule beats. A panel marked
-   `<section hidden class="stack">` therefore stayed visible, because
-   `.stack { display: flex }` won - and the admin console rendered all
-   four tab panels stacked on top of each other. */
+   stylesheet, which any author rule outranks. Without this, a panel
+   marked `<section hidden class="stack">` stays visible because
+   `.stack { display: flex }` wins. */
 [hidden] { display: none !important; }
 
 /* Visible to screen readers, invisible on screen. For labels that would
