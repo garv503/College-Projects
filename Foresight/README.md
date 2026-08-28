@@ -44,7 +44,8 @@ docker compose up --build
 That is the only port you need. MySQL is also published on **3307** for a
 GUI client. Both ports are fixed.
 
-Sign in as `admin` / `Admin@2024`.
+Sign in as `admin` / `Admin@2024` — or with the email on file,
+`admin@foresight.local`. Either works.
 
 Full instructions, including running it without Docker, are in
 **[setup.txt](setup.txt)**.

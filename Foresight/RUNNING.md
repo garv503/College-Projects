@@ -79,14 +79,24 @@ docker compose logs --tail 50    # last 50 lines, all services
 
 ## Signing in
 
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `Admin@2024` | Everything |
-| `faculty` | `Faculty@2024` | Analytics, marks entry, CSV import |
-| any roll number, e.g. `cse2025001` | `Student@2024` | Own records only |
+Sign in with **either the username or the email address** on file — both
+reach the same account.
+
+| Username | Email | Password | Role |
+|---|---|---|---|
+| `admin` | `admin@foresight.local` | `Admin@2024` | Everything |
+| `faculty` | `faculty@foresight.local` | `Faculty@2024` | Analytics, marks entry, CSV import |
+| a roll number, e.g. `cse2025001` | that student's college email | `Student@2024` | Own records only |
 
 The seed prints a working roll number when it runs:
 `docker compose logs seed | grep Student@`
+
+To look up an account's email:
+
+```bash
+docker compose exec db mysql -uroot -p foresight \
+  -e "SELECT username, email FROM users WHERE role <> 'student';"
+```
 
 ---
 

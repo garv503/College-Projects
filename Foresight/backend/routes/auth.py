@@ -43,15 +43,30 @@ bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 @bp.post("/login")
 def login():
-    """Exchange a username and password for a JWT."""
+    """Exchange a username-or-email and password for a JWT."""
     data = json_body()
-    username = require_str(data, "username", max_len=50).lower()
+    # `max_len` allows for an email address, which is longer than the
+    # 50-character username column.
+    identifier = require_str(data, "username", max_len=150).lower()
     password = require_str(data, "password", max_len=200, strip=False)
 
     # Checked before touching the database so a flood of guesses cannot
     # be used to hammer it.
-    check_login_rate(username)
+    check_login_rate(identifier)
 
+    # Sign-in accepts either the username or the email address on file.
+    # The users table stores both, so someone who has only ever seen
+    # their email will naturally try it; refusing that is a support
+    # question, not security.
+    #
+    # A student's address lives on `students`, staff addresses on
+    # `users`, hence the COALESCE - the same rule the password-reset
+    # route uses, so the two cannot disagree about what identifies an
+    # account.
+    #
+    # ORDER BY makes the result deterministic: were a username ever to
+    # equal another account's email, the exact username match wins
+    # rather than the row order deciding who signs in.
     user = db.query_one(
         """
         SELECT u.user_id, u.username, u.password, u.role,
@@ -60,8 +75,11 @@ def login():
         FROM users u
         LEFT JOIN students s ON s.student_id = u.student_id
         WHERE LOWER(u.username) = %s
+           OR LOWER(COALESCE(u.email, s.email)) = %s
+        ORDER BY (LOWER(u.username) = %s) DESC
+        LIMIT 1
         """,
-        (username,),
+        (identifier, identifier, identifier),
     )
 
     # `verify_password` is still called when the user does not exist, so
@@ -71,14 +89,24 @@ def login():
     stored = user["password"] if user else ""
     password_ok = verify_password(password, stored)
 
+    # Rate limiting is also applied to the account's canonical username.
+    # Without this, the two ways of naming one account would each get
+    # their own budget, doubling the attempts available to a guesser.
+    if user and user["username"].lower() != identifier:
+        check_login_rate(user["username"].lower())
+
     if not user or not password_ok or not user["is_active"]:
-        record_login_attempt(username, succeeded=False)
+        record_login_attempt(identifier, succeeded=False)
+        if user and user["username"].lower() != identifier:
+            record_login_attempt(user["username"].lower(), succeeded=False)
         db.commit()
         # One message for every failure mode - "no such user" would
         # confirm which usernames exist.
         raise unauthorized("Incorrect username or password")
 
-    record_login_attempt(username, succeeded=True)
+    record_login_attempt(identifier, succeeded=True)
+    if user["username"].lower() != identifier:
+        record_login_attempt(user["username"].lower(), succeeded=True)
 
     db.execute(
         "UPDATE users SET last_login_at = NOW() WHERE user_id = %s",

@@ -314,17 +314,36 @@
  6.  LOGIN CREDENTIALS
 ----------------------------------------------------------------------
 
-   USERNAME              PASSWORD          ROLE
-   --------------------  ----------------  ------------------------------
-   admin                 Admin@2024        Full access
-   faculty               Faculty@2024      Analytics, marks, CSV import
-   <any roll number>     Student@2024      That student's own records
+   You can sign in with EITHER the username OR the email address on
+   file. Both reach the same account.
+
+   USERNAME            EMAIL                      PASSWORD        ROLE
+   ------------------  -------------------------  --------------  ----------------
+   admin               admin@foresight.local      Admin@2024      Full access
+   faculty             faculty@foresight.local    Faculty@2024    Analytics, marks
+   <any roll number>   that student's college     Student@2024    Own records only
+                       email address
 
    Roll numbers look like CSE2025001, AIML2025003, ECE2025002.
    The seed script prints a working one when it finishes:
 
        docker compose logs seed          (Method A)
        python backend/seed_demo.py       (Method B, prints on completion)
+
+   To list the accounts and their email addresses:
+
+       Method A:
+         docker compose exec db mysql -uroot -p foresight \
+           -e "SELECT username, email, role FROM users WHERE role <> 'student';"
+
+       Method B:
+         mysql -u root -p foresight \
+           -e "SELECT username, email, role FROM users WHERE role <> 'student';"
+
+   NOTE
+     A student's email lives on the `students` table, not `users` - the
+     `users.email` column is NULL for student accounts. Sign-in checks
+     both, so a student's college address works.
 
    These are demonstration credentials for a local database. Change them
    before exposing the application to a network.
@@ -437,6 +456,19 @@
 
  Database container exits with code 127
     Same cause as above. down, then up --build.
+
+ "Incorrect username or password" when signing in to the APPLICATION
+    Note this is the app's login page, not MySQL. Check:
+      - Sign-in accepts the username OR the email on file. Both work, so
+        neither one being rejected points at the identifier itself.
+      - Passwords are case-sensitive: Admin@2024, not admin@2024.
+      - After 5 failed attempts the account is locked for 5 minutes and
+        the response changes to "Too many failed sign-in attempts".
+      - Confirm the account exists and is active:
+          docker compose exec db mysql -uroot -p foresight             -e "SELECT username, email, is_active FROM users
+                 WHERE role <> 'student';"
+    If the health check reports "database": "up", the database is fine
+    and the problem is the credentials, not the connection.
 
  "Access denied for user 'root'@'localhost'"  (Method B)
     DB_PASSWORD in .env does not match your MySQL root password.

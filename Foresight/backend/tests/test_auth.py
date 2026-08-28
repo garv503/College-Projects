@@ -447,3 +447,69 @@ def test_login_attempts_are_recorded_in_the_database(client, seeded, db_conn):
     cur.close()
 
     assert [bool(r["succeeded"]) for r in rows] == [False, True]
+
+
+# --- Signing in with an email address ----------------------------------
+# The users table stores a username and an email, so someone who has only
+# ever seen their email will try it. Accepting both is a usability fix;
+# these tests pin the behaviour and the limits around it.
+
+
+def test_staff_can_sign_in_with_their_email(client, seeded):
+    assert login(client, "admin@test.edu", seeded["password"]) is not None
+    assert login(client, "teacher@test.edu", seeded["password"]) is not None
+
+
+def test_student_can_sign_in_with_their_college_email(client, seeded):
+    """A student's address lives on `students`, not `users`, so this only
+    works if the lookup coalesces the two."""
+    assert login(client, "alice@test.edu", seeded["password"]) is not None
+
+
+def test_email_sign_in_is_case_insensitive(client, seeded):
+    assert login(client, "ADMIN@TEST.EDU", seeded["password"]) is not None
+
+
+def test_username_still_works(client, seeded):
+    assert login(client, "admin", seeded["password"]) is not None
+
+
+def test_unknown_email_is_rejected(client, seeded):
+    assert login(client, "nobody@test.edu", seeded["password"]) is None
+
+
+def test_wrong_password_with_a_valid_email_is_rejected(client, seeded):
+    assert login(client, "admin@test.edu", "WrongPass@1") is None
+
+
+def test_email_sign_in_returns_the_same_identity_as_the_username(client, seeded):
+    """Both routes to the account must produce the same user, or the two
+    identifiers would be different logins that happen to share a password."""
+    by_name = client.post(
+        "/api/auth/login", json={"username": "admin", "password": seeded["password"]}
+    ).get_json()["user"]
+    by_email = client.post(
+        "/api/auth/login",
+        json={"username": "admin@test.edu", "password": seeded["password"]},
+    ).get_json()["user"]
+
+    assert by_name["user_id"] == by_email["user_id"]
+    assert by_email["username"] == "admin"
+    assert by_email["role"] == "admin"
+
+
+def test_rate_limit_is_shared_between_username_and_email(client, seeded):
+    """Otherwise the two names for one account each get their own budget,
+    doubling the attempts available to someone guessing passwords."""
+    for _ in range(config.login_max_attempts):
+        client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "Wrong@123"},
+        )
+
+    # The username is now locked out. The email must be locked out too.
+    blocked = client.post(
+        "/api/auth/login",
+        json={"username": "admin@test.edu", "password": "Wrong@123"},
+    )
+    assert blocked.status_code == 429, "the email address bypassed the rate limit"
