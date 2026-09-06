@@ -10,7 +10,7 @@ Coursework projects. Each one lives on its own branch, so its code, history and 
 | --- | --- | --- |
 | **Foresight** — academic analytics. Marks and attendance go in; a ranked, explained view of which students need help comes out. | [`Student-Analytics`](../../tree/Student-Analytics) | Flask · MySQL 8 · vanilla JS · Docker |
 | **Inkwell** — a fast, private notes app with email-verified signup, search, pinning and an admin console. | [`E-Notes`](../../tree/E-Notes) | React 18 · Express · MySQL |
-| **Shivam Garments** — CSV-backed billing and store management for a garment shop. | [`Bill-Management-System`](../../tree/Bill-Management-System) | Python · pandas · matplotlib |
+| **Apparel Easy** — CSV-backed billing and store management for a garment shop. | [`Bill-Management-System`](../../tree/Bill-Management-System) | Python · pandas · matplotlib |
 
 ## Opening a project
 
